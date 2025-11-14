@@ -389,24 +389,135 @@ export class FileSystemStorage implements IStorage {
     // 检查是否需要保存源配置到文件
     const existingConfig = await this.fileOps.readJsonFile<AdminConfig>(filePath).catch(() => null);
     if (existingConfig && (existingConfig as any)._sourceConfigFile) {
-      // 保存源配置到单独的文件
-      const sourceConfigPath = path.isAbsolute((existingConfig as any)._sourceConfigFile)
-        ? (existingConfig as any)._sourceConfigFile
-        : path.join(path.dirname(filePath), (existingConfig as any)._sourceConfigFile);
-      
-      try {
-        await this.fileOps.writeJsonFile(sourceConfigPath, config.SourceConfig);
-        console.log(`源配置已保存到文件: ${sourceConfigPath}`);
-      } catch (error) {
-        console.error('保存源配置文件失败:', error);
+      // 如果ConfigFile不为空，说明是从config_file API传入的配置内容
+      if (config.ConfigFile && config.ConfigFile.trim() !== '') {
+        try {
+          const configData = JSON.parse(config.ConfigFile);
+          const sourceSources = this.extractSourceConfigFromConfigData(configData);
+          
+          // 保存源配置到单独的文件
+          const sourceConfigPath = path.isAbsolute((existingConfig as any)._sourceConfigFile)
+            ? (existingConfig as any)._sourceConfigFile
+            : path.join(path.dirname(filePath), (existingConfig as any)._sourceConfigFile);
+          
+          await this.fileOps.writeJsonFile(sourceConfigPath, sourceSources);
+          console.log(`源配置已保存到文件: ${sourceConfigPath}`);
+        } catch (error) {
+          console.error('保存源配置文件失败:', error);
+        }
+      } else {
+        // 保存源配置到单独的文件（即使为空也要保存，表示删除所有源）
+        const sourceConfigPath = path.isAbsolute((existingConfig as any)._sourceConfigFile)
+          ? (existingConfig as any)._sourceConfigFile
+          : path.join(path.dirname(filePath), (existingConfig as any)._sourceConfigFile);
+        
+        try {
+          await this.fileOps.writeJsonFile(sourceConfigPath, config.SourceConfig || []);
+          console.log(`源配置已保存到文件: ${sourceConfigPath}`);
+        } catch (error) {
+          console.error('保存源配置文件失败:', error);
+        }
       }
       
-      // 保留 _sourceConfigFile 字段，但清空 SourceConfig 数组
-      const configToSave = { ...config, SourceConfig: [] };
+      // 保留 _sourceConfigFile 字段，但清空 SourceConfig 数组和ConfigFile字段
+      const configToSave = { ...config, SourceConfig: [], ConfigFile: '' };
       await this.fileOps.writeJsonFile(filePath, configToSave);
     } else {
       // 正常保存整个配置
       await this.fileOps.writeJsonFile(filePath, config);
+    }
+  }
+
+  /**
+   * 从配置数据中提取源配置
+   */
+  private extractSourceConfigFromConfigData(configData: any): any[] {
+    const sourceSources: any[] = [];
+    
+    // 从 api_site 中提取源配置
+    if (configData.api_site) {
+      Object.entries(configData.api_site).forEach(([key, site]: [string, any]) => {
+        sourceSources.push({
+          key,
+          name: site.name,
+          api: site.api,
+          detail: site.detail || '',
+          from: 'config',
+          disabled: false
+        });
+      });
+    }
+    
+    return sourceSources;
+  }
+
+  /**
+   * 保存订阅配置到源配置文件
+   */
+  async saveSubscriptionConfigToSourceFile(configContent: string): Promise<boolean> {
+    try {
+      const configData = JSON.parse(configContent);
+      const sourceSources = this.extractSourceConfigFromConfigData(configData);
+      
+      const filePath = this.adminConfigPath();
+      const existingConfig = await this.fileOps.readJsonFile<AdminConfig>(filePath).catch(() => null);
+      
+      if (existingConfig && (existingConfig as any)._sourceConfigFile) {
+        const sourceConfigPath = path.isAbsolute((existingConfig as any)._sourceConfigFile)
+          ? (existingConfig as any)._sourceConfigFile
+          : path.join(path.dirname(filePath), (existingConfig as any)._sourceConfigFile);
+        
+        await this.fileOps.writeJsonFile(sourceConfigPath, sourceSources);
+        console.log(`订阅配置已保存到源配置文件: ${sourceConfigPath}`);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('保存订阅配置到源配置文件失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 从源配置文件中删除指定的源
+   */
+  async removeSourcesFromSourceFile(keys: string[]): Promise<boolean> {
+    try {
+      const filePath = this.adminConfigPath();
+      const existingConfig = await this.fileOps.readJsonFile<AdminConfig>(filePath).catch(() => null);
+      
+      if (!existingConfig || !(existingConfig as any)._sourceConfigFile) {
+        return false;
+      }
+      
+      const sourceConfigPath = path.isAbsolute((existingConfig as any)._sourceConfigFile)
+        ? (existingConfig as any)._sourceConfigFile
+        : path.join(path.dirname(filePath), (existingConfig as any)._sourceConfigFile);
+      
+      const sources = await this.fileOps.readJsonFile<any[]>(sourceConfigPath).catch(() => []);
+      const initialLength = sources?.length || 0;
+      
+      // 删除指定的源
+      if (sources) {
+        for (const key of keys) {
+          const sourceIndex = sources.findIndex((s: any) => s.key === key);
+          if (sourceIndex !== -1) {
+            sources.splice(sourceIndex, 1);
+          }
+        }
+        
+        if (sources.length < initialLength) {
+          await this.fileOps.writeJsonFile(sourceConfigPath, sources);
+          console.log(`已从源配置文件删除 ${initialLength - sources.length} 个源`);
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('从源配置文件删除源失败:', error);
+      return false;
     }
   }
 

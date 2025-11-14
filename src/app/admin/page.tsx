@@ -4047,14 +4047,13 @@ const ConfigFileComponent = ({ config, refreshConfig }: { config: AdminConfig | 
 
 
   useEffect(() => {
-    if (config?.ConfigFile) {
-      setConfigContent(config.ConfigFile);
-    }
+    // 只在订阅配置变化时更新订阅URL和自动更新设置
     if (config?.ConfigSubscribtion) {
       setSubscriptionUrl(config.ConfigSubscribtion.URL);
       setAutoUpdate(config.ConfigSubscribtion.AutoUpdate);
       setLastCheckTime(config.ConfigSubscribtion.LastCheck || '');
     }
+    // 注意：不自动加载 ConfigFile 到输入框，保持默认为空
   }, [config]);
 
 
