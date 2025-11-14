@@ -363,12 +363,51 @@ export class FileSystemStorage implements IStorage {
 
   async getAdminConfig(): Promise<AdminConfig | null> {
     const filePath = this.adminConfigPath();
-    return this.fileOps.readJsonFile<AdminConfig>(filePath);
+    const config = await this.fileOps.readJsonFile<AdminConfig>(filePath);
+    
+    // 处理源配置文件引用
+    if (config && (config as any)._sourceConfigFile) {
+      try {
+        const sourceConfigPath = path.isAbsolute((config as any)._sourceConfigFile)
+          ? (config as any)._sourceConfigFile
+          : path.join(path.dirname(filePath), (config as any)._sourceConfigFile);
+        
+        const sources = await this.fileOps.readJsonFile<any[]>(sourceConfigPath);
+        config.SourceConfig = sources || [];
+      } catch (error) {
+        console.error('加载源配置文件失败:', error);
+        config.SourceConfig = [];
+      }
+    }
+    
+    return config;
   }
 
   async setAdminConfig(config: AdminConfig): Promise<void> {
     const filePath = this.adminConfigPath();
-    await this.fileOps.writeJsonFile(filePath, config);
+    
+    // 检查是否需要保存源配置到文件
+    const existingConfig = await this.fileOps.readJsonFile<AdminConfig>(filePath).catch(() => null);
+    if (existingConfig && (existingConfig as any)._sourceConfigFile) {
+      // 保存源配置到单独的文件
+      const sourceConfigPath = path.isAbsolute((existingConfig as any)._sourceConfigFile)
+        ? (existingConfig as any)._sourceConfigFile
+        : path.join(path.dirname(filePath), (existingConfig as any)._sourceConfigFile);
+      
+      try {
+        await this.fileOps.writeJsonFile(sourceConfigPath, config.SourceConfig);
+        console.log(`源配置已保存到文件: ${sourceConfigPath}`);
+      } catch (error) {
+        console.error('保存源配置文件失败:', error);
+      }
+      
+      // 保留 _sourceConfigFile 字段，但清空 SourceConfig 数组
+      const configToSave = { ...config, SourceConfig: [] };
+      await this.fileOps.writeJsonFile(filePath, configToSave);
+    } else {
+      // 正常保存整个配置
+      await this.fileOps.writeJsonFile(filePath, config);
+    }
   }
 
   // ---------- 跳过片头片尾配置 ----------
