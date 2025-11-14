@@ -2,20 +2,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getConfig } from '@/lib/config';
-import db from '@/lib/db';
+import { db } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
-// 读取存储类型环境变量，默认 file
+// 读取存储类型环境变量，默认 localstorage
 const STORAGE_TYPE =
   (process.env.NEXT_PUBLIC_STORAGE_TYPE as
-    | 'file'
     | 'localstorage'
     | 'redis'
     | 'upstash'
     | 'kvrocks'
-    | 'cf-kv'
-    | undefined) || 'file';
+    | undefined) || 'localstorage';
 
 // 生成签名
 async function generateSignature(
@@ -72,56 +70,99 @@ async function generateAuthCookie(
 
 export async function POST(req: NextRequest) {
   try {
-    const { username, password } = await req.json();
+    // 本地 / localStorage 模式——仅校验固定密码
+    if (STORAGE_TYPE === 'localstorage') {
+      const envPassword = process.env.PASSWORD;
 
-    // 检查是否设置了环境变量 USERNAME 和 PASSWORD
-    const envUsername = process.env.USERNAME;
-    const envPassword = process.env.PASSWORD;
-    console.log('环境变量检查:', { envUsername, envPassword });
-
-    // 如果设置了环境变量，优先使用环境变量进行验证
-    if (envUsername && envPassword && envUsername.trim() !== '' && envPassword.trim() !== '') {
-      console.log('使用环境变量验证:', { 
-        inputUsername: username, 
-        inputPassword: password,
-        envUsername,
-        envPassword
-      });
-      
-      if (username === envUsername && password === envPassword) {
-        console.log('环境变量验证成功');
-        // 验证成功，设置认证cookie
+      // 未配置 PASSWORD 时直接放行
+      if (!envPassword) {
         const response = NextResponse.json({ ok: true });
-        const cookieValue = await generateAuthCookie(
-          username,
-          password,
-          'owner',
-          false
-        ); // 数据库模式不包含 password
-        const expires = new Date();
-        expires.setDate(expires.getDate() + 7); // 7天过期
 
-        response.cookies.set('user_auth', cookieValue, {
+        // 清除可能存在的认证cookie
+        response.cookies.set('user_auth', '', {
           path: '/',
-          expires,
+          expires: new Date(0),
           sameSite: 'lax', // 改为 lax 以支持 PWA
           httpOnly: false, // PWA 需要客户端可访问
           secure: false, // 根据协议自动设置
         });
 
         return response;
-      } else {
-        console.log('环境变量验证失败');
-        // 环境变量验证失败，返回错误
+      }
+
+      const { password } = await req.json();
+      if (typeof password !== 'string') {
+        return NextResponse.json({ error: '密码不能为空' }, { status: 400 });
+      }
+
+      if (password !== envPassword) {
         return NextResponse.json(
-          { error: '用户名或密码错误' },
+          { ok: false, error: '密码错误' },
           { status: 401 }
         );
       }
+
+      // 验证成功，设置认证cookie
+      const response = NextResponse.json({ ok: true });
+      const cookieValue = await generateAuthCookie(
+        undefined,
+        password,
+        'user',
+        true
+      ); // localstorage 模式包含 password
+      const expires = new Date();
+      expires.setDate(expires.getDate() + 7); // 7天过期
+
+      response.cookies.set('user_auth', cookieValue, {
+        path: '/',
+        expires,
+        sameSite: 'lax', // 改为 lax 以支持 PWA
+        httpOnly: false, // PWA 需要客户端可访问
+        secure: false, // 根据协议自动设置
+      });
+
+      return response;
     }
 
-    // 如果没有设置环境变量，使用数据库验证
-    console.log('使用数据库验证');
+    // 数据库 / redis 模式——校验用户名并尝试连接数据库
+    const { username, password } = await req.json();
+
+    if (!username || typeof username !== 'string') {
+      return NextResponse.json({ error: '用户名不能为空' }, { status: 400 });
+    }
+    if (!password || typeof password !== 'string') {
+      return NextResponse.json({ error: '密码不能为空' }, { status: 400 });
+    }
+
+    // 可能是站长，直接读环境变量
+    if (
+      username === process.env.USERNAME &&
+      password === process.env.PASSWORD
+    ) {
+      // 验证成功，设置认证cookie
+      const response = NextResponse.json({ ok: true });
+      const cookieValue = await generateAuthCookie(
+        username,
+        password,
+        'owner',
+        false
+      ); // 数据库模式不包含 password
+      const expires = new Date();
+      expires.setDate(expires.getDate() + 7); // 7天过期
+
+      response.cookies.set('user_auth', cookieValue, {
+        path: '/',
+        expires,
+        sameSite: 'lax', // 改为 lax 以支持 PWA
+        httpOnly: false, // PWA 需要客户端可访问
+        secure: false, // 根据协议自动设置
+      });
+
+      return response;
+    } else if (username === process.env.USERNAME) {
+      return NextResponse.json({ error: '用户名或密码错误' }, { status: 401 });
+    }
+
     const config = await getConfig();
     const user = config.UserConfig.Users.find((u) => u.username === username);
     if (user && user.banned) {
@@ -131,7 +172,6 @@ export async function POST(req: NextRequest) {
     // 校验用户密码
     try {
       const pass = await db.verifyUser(username, password);
-      console.log('数据库验证结果:', pass);
       if (!pass) {
         return NextResponse.json(
           { error: '用户名或密码错误' },
@@ -159,15 +199,12 @@ export async function POST(req: NextRequest) {
       });
 
       return response;
-    } catch (error) {
-      console.error('数据库验证失败', error);
-      return NextResponse.json(
-        { error: '服务器内部错误' },
-        { status: 500 }
-      );
+    } catch (err) {
+      console.error('数据库验证失败', err);
+      return NextResponse.json({ error: '数据库错误' }, { status: 500 });
     }
   } catch (error) {
-    console.error('登录处理失败', error);
-    return NextResponse.json({ error: '服务器内部错误' }, { status: 500 });
+    console.error('登录接口异常', error);
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

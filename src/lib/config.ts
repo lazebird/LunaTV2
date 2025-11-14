@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, no-console, @typescript-eslint/no-non-null-assertion */
 
-import db from '@/lib/db';
+import { db } from '@/lib/db';
 
 import { AdminConfig } from './admin.types';
 
@@ -315,7 +315,7 @@ export async function getConfig(): Promise<AdminConfig> {
   }
   adminConfig = await configSelfCheck(adminConfig);
   cachedConfig = adminConfig;
-  await db.setAdminConfig(cachedConfig);
+  db.saveAdminConfig(cachedConfig);
   return cachedConfig;
 }
 

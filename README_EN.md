@@ -579,7 +579,7 @@ After deployment, it's an empty shell application. You need to fill in the confi
 
 ### 📝 Configuration Format
 
-```
+```json
 {
   "cache_time": 7200,
   "api_site": {
@@ -635,7 +635,7 @@ You can also enter specific content like "Harry Potter", which works the same as
 | ---------------------------- | ------------------ | ----------------------- |
 | `USERNAME`                   | Admin account      | `admin`                 |
 | `PASSWORD`                   | Admin password     | `your_secure_password`  |
-| `NEXT_PUBLIC_STORAGE_TYPE`   | Storage type       | `file` / `kvrocks` / `redis` / `upstash` |
+| `NEXT_PUBLIC_STORAGE_TYPE`   | Storage type       | `kvrocks` / `redis` / `upstash` |
 
 ### Storage Configuration
 
