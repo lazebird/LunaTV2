@@ -1,6 +1,7 @@
 /* eslint-disable no-console, @typescript-eslint/no-explicit-any, @typescript-eslint/no-non-null-assertion */
 
 import { AdminConfig } from './admin.types';
+import { FileSystemStorage } from './filesystem.db';
 import { KvrocksStorage } from './kvrocks.db';
 import { RedisStorage } from './redis.db';
 import {
@@ -14,27 +15,41 @@ import {
 } from './types';
 import { UpstashRedisStorage } from './upstash.db';
 
-// storage type 常量: 'localstorage' | 'redis' | 'upstash'，默认 'localstorage'
+// storage type 常量: 'localstorage' | 'redis' | 'upstash' | 'kvrocks' | 'filesystem'，默认 'localstorage'
 const STORAGE_TYPE =
   (process.env.NEXT_PUBLIC_STORAGE_TYPE as
     | 'localstorage'
     | 'redis'
     | 'upstash'
     | 'kvrocks'
-    | undefined) || 'localstorage';
+    | 'filesystem'
+    | undefined) || 'filesystem';
 
 // 创建存储实例
 function createStorage(): IStorage {
-  switch (STORAGE_TYPE) {
-    case 'redis':
-      return new RedisStorage();
-    case 'upstash':
-      return new UpstashRedisStorage();
-    case 'kvrocks':
-      return new KvrocksStorage();
-    case 'localstorage':
-    default:
-      return null as unknown as IStorage;
+  try {
+    switch (STORAGE_TYPE) {
+      case 'redis':
+        return new RedisStorage();
+      case 'upstash':
+        return new UpstashRedisStorage();
+      case 'kvrocks':
+        return new KvrocksStorage();
+      case 'filesystem':
+        return new FileSystemStorage();
+      case 'localstorage':
+        return null as unknown as IStorage;
+      default:
+        // 默认使用文件系统存储，而不是返回null
+        console.warn(
+          `[DB] 不支持的存储类型 "${STORAGE_TYPE}"，默认使用文件系统存储`
+        );
+        return new FileSystemStorage();
+    }
+  } catch (error) {
+    console.error(`[DB] 创建存储实例失败，存储类型: ${STORAGE_TYPE}`, error);
+    // 发生错误时回退到文件系统存储
+    return new FileSystemStorage();
   }
 }
 
@@ -44,6 +59,9 @@ let storageInstance: IStorage | null = null;
 function getStorage(): IStorage {
   if (!storageInstance) {
     storageInstance = createStorage();
+    if (!storageInstance) {
+      throw new Error('创建存储实例失败：createStorage returned null');
+    }
   }
   return storageInstance;
 }
@@ -59,6 +77,9 @@ export class DbManager {
 
   constructor() {
     this.storage = getStorage();
+    if (!this.storage) {
+      throw new Error('存储初始化失败：storage instance is null');
+    }
   }
 
   // 播放记录相关方法
@@ -258,7 +279,12 @@ export class DbManager {
     config: EpisodeSkipConfig
   ): Promise<void> {
     if (typeof (this.storage as any).saveEpisodeSkipConfig === 'function') {
-      await (this.storage as any).saveEpisodeSkipConfig(userName, source, id, config);
+      await (this.storage as any).saveEpisodeSkipConfig(
+        userName,
+        source,
+        id,
+        config
+      );
     }
   }
 
@@ -298,7 +324,11 @@ export class DbManager {
     return null;
   }
 
-  async setCache(key: string, data: any, expireSeconds?: number): Promise<void> {
+  async setCache(
+    key: string,
+    data: any,
+    expireSeconds?: number
+  ): Promise<void> {
     if (typeof this.storage.setCache === 'function') {
       await this.storage.setCache(key, data, expireSeconds);
     }
@@ -360,7 +390,7 @@ export class DbManager {
       lastPlayTime: 0,
       recentRecords: [],
       avgWatchTime: 0,
-      mostWatchedSource: ''
+      mostWatchedSource: '',
     };
   }
 
@@ -380,7 +410,12 @@ export class DbManager {
     _watchTime: number
   ): Promise<void> {
     if (typeof (this.storage as any).updatePlayStatistics === 'function') {
-      await (this.storage as any).updatePlayStatistics(_userName, _source, _id, _watchTime);
+      await (this.storage as any).updatePlayStatistics(
+        _userName,
+        _source,
+        _id,
+        _watchTime
+      );
     }
   }
 
@@ -390,7 +425,11 @@ export class DbManager {
     isFirstLogin?: boolean
   ): Promise<void> {
     if (typeof (this.storage as any).updateUserLoginStats === 'function') {
-      await (this.storage as any).updateUserLoginStats(userName, loginTime, isFirstLogin);
+      await (this.storage as any).updateUserLoginStats(
+        userName,
+        loginTime,
+        isFirstLogin
+      );
     }
   }
 

@@ -43,3 +43,8 @@ sitemap-*.xml
 # generated files
 src/lib/runtime.ts
 public/manifest.json
+public/workbox-e9849328.js
+public/sw.js
+
+# filesystem datas
+/data/
