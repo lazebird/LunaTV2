@@ -2557,6 +2557,8 @@ const VideoSourceConfig = ({
   const { alertModal, showAlert, hideAlert } = useAlertModal();
   const { isLoading, withLoading } = useLoadingState();
   const [sources, setSources] = useState<DataSource[]>([]);
+  const [filteredSources, setFilteredSources] = useState<DataSource[]>([]);
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [orderChanged, setOrderChanged] = useState(false);
   const [newSource, setNewSource] = useState<DataSource>({
@@ -2573,8 +2575,8 @@ const VideoSourceConfig = ({
 
   // 使用 useMemo 计算全选状态，避免每次渲染都重新计算
   const selectAll = useMemo(() => {
-    return selectedSources.size === sources.length && selectedSources.size > 0;
-  }, [selectedSources.size, sources.length]);
+    return selectedSources.size === filteredSources.length && selectedSources.size > 0;
+  }, [selectedSources.size, filteredSources.length]);
 
   // 导入导出模态框状态
   const [importExportModal, setImportExportModal] = useState<{
@@ -2613,8 +2615,8 @@ const VideoSourceConfig = ({
 
   // 有效性检测相关状态
   const [showValidationModal, setShowValidationModal] = useState(false);
-  const [searchKeyword, setSearchKeyword] = useState('');
   const [isValidating, setIsValidating] = useState(false);
+  const [validationSearchKeyword, setValidationSearchKeyword] = useState('');
   const [validationResults, setValidationResults] = useState<Array<{
     key: string;
     name: string;
@@ -2648,6 +2650,21 @@ const VideoSourceConfig = ({
       setSelectedSources(new Set());
     }
   }, [config]);
+
+  // 搜索过滤逻辑
+  useEffect(() => {
+    if (!searchKeyword.trim()) {
+      setFilteredSources(sources);
+    } else {
+      const keyword = searchKeyword.toLowerCase();
+      const filtered = sources.filter(source => {
+        // 对源的所有字段进行 JSON.stringify 后搜索
+        const sourceString = JSON.stringify(source).toLowerCase();
+        return sourceString.includes(keyword);
+      });
+      setFilteredSources(filtered);
+    }
+  }, [sources, searchKeyword]);
 
   // 通用 API 请求
   const callSourceApi = async (body: Record<string, any>) => {
@@ -2772,7 +2789,7 @@ const VideoSourceConfig = ({
 
   // 有效性检测函数
   const handleValidateSources = async () => {
-    if (!searchKeyword.trim()) {
+    if (!validationSearchKeyword.trim()) {
       showAlert({ type: 'warning', title: '请输入搜索关键词', message: '搜索关键词不能为空' });
       return;
     }
@@ -3027,12 +3044,12 @@ const VideoSourceConfig = ({
   // 全选/取消全选
   const handleSelectAll = useCallback((checked: boolean) => {
     if (checked) {
-      const allKeys = sources.map(s => s.key);
+      const allKeys = filteredSources.map(s => s.key);
       setSelectedSources(new Set(allKeys));
     } else {
       setSelectedSources(new Set());
     }
-  }, [sources]);
+  }, [filteredSources]);
 
   // 单个选择
   const handleSelectSource = useCallback((key: string, checked: boolean) => {
@@ -3496,6 +3513,39 @@ const VideoSourceConfig = ({
 
 
 
+      {/* 搜索框 */}
+      <div className='mb-4'>
+        <div className='relative'>
+          <input
+            type='text'
+            placeholder='搜索视频源（支持所有字段搜索）...'
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+            className='w-full px-4 py-2 pl-10 pr-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+          />
+          <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+            <svg className='h-5 w-5 text-gray-400' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' />
+            </svg>
+          </div>
+          {searchKeyword && (
+            <button
+              onClick={() => setSearchKeyword('')}
+              className='absolute inset-y-0 right-0 pr-3 flex items-center'
+            >
+              <svg className='h-5 w-5 text-gray-400 hover:text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
+              </svg>
+            </button>
+          )}
+        </div>
+        {searchKeyword && (
+          <div className='mt-2 text-sm text-gray-500 dark:text-gray-400'>
+            找到 {filteredSources.length} 个匹配项（共 {sources.length} 个）
+          </div>
+        )}
+      </div>
+
       {/* 视频源表格 */}
       <div className='border border-gray-200 dark:border-gray-700 rounded-lg max-h-[28rem] overflow-y-auto overflow-x-auto relative' data-table="source-list">
         <table className='min-w-full divide-y divide-gray-200 dark:divide-gray-700'>
@@ -3544,11 +3594,11 @@ const VideoSourceConfig = ({
             modifiers={[restrictToVerticalAxis, restrictToParentElement]}
           >
             <SortableContext
-              items={sources.map((s) => s.key)}
+              items={filteredSources.map((s) => s.key)}
               strategy={verticalListSortingStrategy}
             >
               <tbody className='divide-y divide-gray-200 dark:divide-gray-700'>
-                {sources.map((source) => (
+                {filteredSources.map((source) => (
                   <DraggableRow key={source.key} source={source} />
                 ))}
               </tbody>
@@ -3584,8 +3634,8 @@ const VideoSourceConfig = ({
               <input
                 type='text'
                 placeholder='请输入搜索关键词'
-                value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
+                value={validationSearchKeyword}
+                onChange={(e) => setValidationSearchKeyword(e.target.value)}
                 className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
                 onKeyPress={(e) => e.key === 'Enter' && handleValidateSources()}
               />
