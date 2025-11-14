@@ -1,0 +1,198 @@
+# LunaTV 项目架构与功能分析
+
+## 1. 项目概述
+
+LunaTV（又称 MoonTV）是一个开源的跨平台影视聚合播放器，基于现代 Web 技术栈构建，旨在为用户提供一个可自定义、支持多源搜索和云端同步的个人影视中心。
+
+### 1.1 项目定位
+
+LunaTV 是一个深度定制的视频流媒体平台，它在 MoonTV 原版基础上进行了大量功能增强，包括：
+- YouTube 集成
+- 网盘搜索
+- AI 推荐
+- 短剧功能
+- IPTV 直播
+- Bangumi 动漫
+- 播放统计
+- 弹幕系统
+
+### 1.2 核心价值
+
+- 解决影视资源分散问题，聚合多个来源
+- 实现播放记录与收藏跨设备同步
+- 提供统一、美观且响应式的播放界面
+- 支持高度可配置化的内容源管理
+
+## 2. 技术架构
+
+### 2.1 整体架构
+
+LunaTV 采用现代化的全栈 Web 应用架构：
+
+- **前端框架**：Next.js 14 (App Router)
+- **UI 框架**：Tailwind CSS 3 + Headless UI
+- **编程语言**：TypeScript
+- **视频播放器**：ArtPlayer + HLS.js
+- **状态管理**：React Context + localStorage
+- **构建工具**：pnpm
+- **部署方式**：Docker
+
+### 2.2 核心设计理念
+
+1. **BFF（Backend for Frontend）模式**：Next.js 同时承担前端渲染与后端代理职责
+2. **微内核架构**：核心逻辑轻量，功能通过配置驱动扩展
+3. **客户端无状态**：所有状态保存在远程存储中，便于多端同步
+4. **多存储后端支持**：支持 Kvrocks/Redis/Upstash 等多种存储方案
+
+### 2.3 目录结构
+
+```
+.
+├── public/                 # 静态资源
+├── scripts/                # 构建脚本
+├── src/
+│   ├── app/                # Next.js App Router 页面和 API 路由
+│   │   ├── admin/          # 管理后台页面
+│   │   ├── api/            # API 路由处理逻辑
+│   │   └── ...             # 其他页面组件
+│   ├── components/         # 可复用 UI 组件
+│   ├── hooks/              # 自定义 React Hooks
+│   ├── lib/                # 核心业务逻辑库
+│   └── ...
+├── doc/                    # 文档目录（新建）
+└── ...
+```
+
+## 3. 核心功能模块
+
+### 3.1 用户认证系统
+
+LunaTV 采用基于 Cookie 的认证机制：
+
+- 用户名和密码通过环境变量配置
+- 认证信息存储在名为 `auth` 的 Cookie 中
+- 支持多种存储后端的身份验证
+
+### 3.2 内容聚合系统
+
+#### 3.2.1 多源搜索
+- 支持苹果 CMS V10 API 格式的视频源
+- 聚合多个视频源的搜索结果
+- 支持搜索结果缓存优化性能
+
+#### 3.2.2 视频详情展示
+- 显示视频基本信息（标题、封面、简介等）
+- 展示剧集列表
+- 提供播放链接
+
+### 3.3 播放系统
+
+#### 3.3.1 视频播放
+- 集成 ArtPlayer 播放器
+- 支持 HLS 流媒体播放
+- 响应式设计，适配各种设备
+
+#### 3.3.2 播放记录管理
+- 自动记录播放位置
+- 支持跨设备同步播放记录
+- 继续观看功能
+
+### 3.4 收藏系统
+- 用户可以收藏喜欢的视频
+- 收藏内容云端同步
+- 支持收藏管理（添加/删除）
+
+### 3.5 直播系统
+- IPTV 直播功能
+- EPG 节目单显示
+- 支持 m3u/m3u8 订阅
+
+### 3.6 豆瓣内容集成
+- 豆瓣热门内容展示
+- 豆瓣电影/电视剧评分信息
+- 豆瓣分类浏览
+
+### 3.7 AI 推荐系统
+- 基于 AI 的内容推荐
+- 支持 GPT 系列模型
+- 动态提示词管理
+
+## 4. 数据存储架构
+
+### 4.1 多存储后端支持
+
+LunaTV 设计了一个统一的数据存储接口 [IStorage](file:///home/liulang/projects/backup/LunaTV/src/lib/types.ts#L294-L323)，支持多种后端存储：
+
+1. **LocalStorage**：本地存储，适用于单机使用
+2. **Redis**：高性能键值存储
+3. **Upstash**：基于 Redis 的云存储服务
+4. **Kvrocks**：兼容 Redis 协议的分布式存储
+
+### 4.2 数据模型
+
+主要的数据模型包括：
+
+- [PlayRecord](file:///home/liulang/projects/backup/LunaTV/src/lib/types.ts#L257-L267)：播放记录
+- [Favorite](file:///home/liulang/projects/backup/LunaTV/src/lib/db.client.ts#L36-L47)：收藏记录
+- [AdminConfig](file:///home/liulang/projects/backup/LunaTV/src/lib/admin.types.ts#L88-L113)：管理配置
+- [VideoInfo](file:///home/liulang/projects/backup/LunaTV/src/lib/types.ts#L183-L194)：视频信息
+
+## 5. API 架构
+
+### 5.1 API 路由组织
+
+API 路由按照功能模块组织在 [src/app/api/](file:///home/liulang/projects/backup/LunaTV/src/app/api/) 目录下：
+
+- [/api/search](file:///home/liulang/projects/backup/LunaTV/src/app/api/search/)：搜索相关接口
+- [/api/detail](file:///home/liulang/projects/backup/LunaTV/src/app/api/detail/)：视频详情接口
+- [/api/playrecords](file:///home/liulang/projects/backup/LunaTV/src/app/api/playrecords/)：播放记录接口
+- [/api/favorites](file:///home/liulang/projects/backup/LunaTV/src/app/api/favorites/)：收藏接口
+- [/api/live](file:///home/liulang/projects/backup/LunaTV/src/app/api/live/)：直播相关接口
+- [/api/douban](file:///home/liulang/projects/backup/LunaTV/src/app/api/douban/)：豆瓣内容接口
+
+### 5.2 认证保护
+
+通过 [middleware.ts](file:///home/liulang/projects/backup/LunaTV/src/middleware.ts) 文件实现统一的认证检查，保护敏感 API 路由。
+
+## 6. 部署架构
+
+### 6.1 Docker 部署
+
+项目提供 Docker 部署支持，通过多阶段构建优化镜像大小和安全性。
+
+### 6.2 环境配置
+
+关键环境变量：
+- `USERNAME` 和 `PASSWORD`：管理员账户信息
+- `NEXT_PUBLIC_STORAGE_TYPE`：存储后端类型
+- `KVROCKS_URL`：Kvrocks 数据库连接地址
+- `REDIS_URL`：Redis 数据库连接地址
+
+## 7. 安全考虑
+
+### 7.1 认证安全
+- 必须设置用户名和密码才能使用系统
+- 认证信息加密存储在 Cookie 中
+
+### 7.2 访问控制
+- 通过中间件实现路由级别的访问控制
+- 敏感操作需要登录后访问
+
+### 7.3 数据安全
+- 支持多种企业级存储后端
+- 数据传输加密（HTTPS）
+
+## 8. 扩展性和维护性
+
+### 8.1 插件化架构
+- 通过配置驱动功能扩展
+- 统一的存储接口便于增加新存储后端
+
+### 8.2 组件化设计
+- UI 组件高度可复用
+- 业务逻辑与展示逻辑分离
+
+### 8.3 易于维护
+- TypeScript 提供强类型检查
+- ESLint 和 Prettier 保证代码风格一致
+- Jest 提供单元测试支持

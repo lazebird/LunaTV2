@@ -1,0 +1,356 @@
+# LunaTV 数据存储方案分析
+
+## 1. 概述
+
+LunaTV 项目支持多种数据存储方案，以适应不同的部署环境和需求。这些存储方案包括本地存储（localStorage）、Redis、Kvrocks、Upstash Redis 和 Cloudflare KV。每种方案都有其特定的使用场景和优缺点。
+
+## 2. 存储架构设计
+
+### 2.1 统一接口设计
+
+LunaTV 采用统一的存储接口 [IStorage](file:///home/liulang/projects/backup/LunaTV/src/lib/types.ts#L83-L139)，定义了所有存储方案必须实现的方法。这种设计使得系统可以在不同存储方案之间无缝切换，而无需修改业务逻辑代码。
+
+```typescript
+export interface IStorage {
+  // 播放记录相关
+  getPlayRecord(userName: string, key: string): Promise<PlayRecord | null>;
+  setPlayRecord(
+    userName: string,
+    key: string,
+    record: PlayRecord
+  ): Promise<void>;
+  getAllPlayRecords(userName: string): Promise<{ [key: string]: PlayRecord }>;
+  deletePlayRecord(userName: string, key: string): Promise<void>;
+
+  // 收藏相关
+  getFavorite(userName: string, key: string): Promise<Favorite | null>;
+  setFavorite(userName: string, key: string, favorite: Favorite): Promise<void>;
+  getAllFavorites(userName: string): Promise<{ [key: string]: Favorite }>;
+  deleteFavorite(userName: string, key: string): Promise<void>;
+  
+  // ... 其他方法
+}
+```
+
+### 2.2 工厂模式实现
+
+项目使用工厂模式来创建不同类型的存储实例。在 [src/lib/db.ts](file:///home/liulang/projects/backup/LunaTV/src/lib/db.ts) 文件中，通过 [createStorage](file:///home/liulang/projects/backup/LunaTV/src/lib/db.ts#L40-L56) 函数根据环境变量 `NEXT_PUBLIC_STORAGE_TYPE` 的值来创建对应的存储实例。
+
+```typescript
+function createStorage(): IStorage {
+  switch (STORAGE_TYPE) {
+    case 'redis':
+      return new RedisStorage();
+    case 'upstash':
+      return new UpstashRedisStorage();
+    case 'kvrocks':
+      return new KvrocksStorage();
+    case 'cf-kv':
+      if (!kvNamespace) {
+        throw new Error('KV Namespace not initialized for cf-kv storage');
+      }
+      return new CloudflareKVStorage(kvNamespace);
+    case 'localstorage':
+    default:
+      return null as unknown as IStorage;
+  }
+}
+```
+
+### 2.3 单例模式实现
+
+为了确保在整个应用中使用同一个存储实例，项目采用了单例模式。在 [db.ts](file:///home/liulang/projects/backup/LunaTV/src/lib/db.ts) 文件中，通过 `storageInstance` 变量来存储唯一的存储实例。
+
+```typescript
+// 单例存储实例
+let storageInstance: IStorage | null = null;
+
+function getStorage(): IStorage {
+  if (!storageInstance) {
+    storageInstance = createStorage();
+  }
+  return storageInstance;
+}
+```
+
+## 3. 各种存储方案实现
+
+### 3.1 localStorage（本地存储）
+
+localStorage 是默认的存储方案，适用于单用户或测试环境。数据存储在浏览器中，无需额外的服务器支持。
+
+**特点：**
+- 无需额外配置
+- 数据存储在浏览器本地
+- 适用于单用户环境
+- 不支持多设备数据同步
+- 数据容量有限（通常为 5-10MB）
+
+**使用场景：**
+- 本地开发和测试
+- 单用户使用场景
+- 临时演示环境
+
+### 3.2 Redis
+
+Redis 是一个高性能的键值存储系统，适用于需要数据持久化和多设备同步的场景。
+
+**实现细节：**
+- 基于 [redis](https://www.npmjs.com/package/redis) npm 包实现
+- 使用 [BaseRedisStorage](file:///home/liulang/projects/backup/LunaTV/src/lib/redis-base.db.ts#L58-L156) 作为基础类，RedisStorage 和 KvrocksStorage 都继承自它
+- 实现了连接重试机制和断线重连功能
+- 使用 Symbol 确保全局唯一客户端实例
+
+**代码结构：**
+```typescript
+// src/lib/redis.db.ts
+export class RedisStorage extends BaseRedisStorage {
+  constructor() {
+    const config = {
+      url: process.env.REDIS_URL!,
+      clientName: 'Redis'
+    };
+    const globalSymbol = Symbol.for('__MOONTV_REDIS_CLIENT__');
+    super(config, globalSymbol);
+  }
+}
+```
+
+**特点：**
+- 高性能键值存储
+- 支持数据持久化
+- 支持多设备数据同步
+- 需要独立的 Redis 服务器
+- 适用于生产环境
+
+**使用场景：**
+- 生产环境部署
+- 需要数据持久化
+- 多用户、多设备使用场景
+
+### 3.3 Kvrocks
+
+Kvrocks 是一个兼容 Redis 协议的分布式存储系统，基于 RocksDB 实现。
+
+**实现细节：**
+- 与 Redis 共享相同的基类 [BaseRedisStorage](file:///home/liulang/projects/backup/LunaTV/src/lib/redis-base.db.ts#L58-L156)
+- 通过不同的环境变量 `KVROCKS_URL` 进行配置
+- 使用不同的全局 Symbol 确保实例唯一性
+
+**代码结构：**
+```typescript
+// src/lib/kvrocks.db.ts
+export class KvrocksStorage extends BaseRedisStorage {
+  constructor() {
+    const config = {
+      url: process.env.KVROCKS_URL!,
+      clientName: 'Kvrocks'
+    };
+    const globalSymbol = Symbol.for('__MOONTV_KVROCKS_CLIENT__');
+    super(config, globalSymbol);
+  }
+}
+```
+
+**特点：**
+- 兼容 Redis 协议
+- 基于 RocksDB 实现，性能优秀
+- 支持分布式部署
+- 数据持久化
+- 适用于大规模生产环境
+
+**使用场景：**
+- 大规模生产环境
+- 需要高性能和高可靠性
+- 分布式部署需求
+
+### 3.4 Upstash Redis
+
+Upstash Redis 是一个无服务器的 Redis 服务，适用于无服务器部署场景。
+
+**实现细节：**
+- 基于 [@upstash/redis](https://www.npmjs.com/package/@upstash/redis) npm 包实现
+- 实现了重试机制以应对网络波动
+- 使用 REST API 进行通信，无需长连接
+
+**代码结构：**
+```typescript
+// src/lib/upstash.db.ts
+export class UpstashRedisStorage implements IStorage {
+  private client: Redis;
+
+  constructor() {
+    this.client = getUpstashRedisClient();
+  }
+
+  // 重试包装器
+  async function withRetry<T>(
+    operation: () => Promise<T>,
+    maxRetries = 3
+  ): Promise<T> {
+    // 实现重试逻辑
+  }
+}
+```
+
+**特点：**
+- 无服务器架构
+- 全托管服务
+- 按使用量计费
+- 适用于 Vercel 等无服务器平台
+- 内置重试机制
+
+**使用场景：**
+- Vercel 等无服务器平台部署
+- 希望减少运维工作量
+- 按需付费场景
+
+### 3.5 Cloudflare KV
+
+Cloudflare KV 是 Cloudflare 提供的全球分布式键值存储服务。
+
+**实现细节：**
+- 需要在 Cloudflare 控制台创建 KV 命名空间
+- 通过 [setKVNamespace](file:///home/liulang/projects/backup/LunaTV/src/lib/db.ts#L25-L27) 函数设置命名空间
+- 实现了针对 Cloudflare 环境的特殊处理
+
+**代码结构：**
+```typescript
+// src/lib/cf-kv.db.ts
+export class CloudflareKVStorage implements IStorage {
+  constructor(private kv: KVNamespace) {}
+
+  async getPlayRecord(
+    userName: string,
+    key: string
+  ): Promise<PlayRecord | null> {
+    const val = await this.kv.get(this.prKey(userName, key), 'json');
+    return val || null;
+  }
+}
+```
+
+**特点：**
+- 全球分布式存储
+- 与 Cloudflare Pages 无缝集成
+- 高可用性和低延迟
+- 适用于边缘计算场景
+
+**使用场景：**
+- Cloudflare Pages 部署
+- 边缘计算场景
+- 全球分布式应用
+
+## 4. 存储方案选择指南
+
+### 4.1 开发/测试环境
+
+推荐使用 localStorage，无需额外配置，便于快速开发和测试。
+
+### 4.2 生产环境
+
+根据具体需求选择：
+
+1. **小规模部署**：Redis，成熟稳定，易于管理
+2. **大规模部署**：Kvrocks，高性能，支持分布式
+3. **无服务器部署**：Upstash Redis，无需管理服务器
+4. **Cloudflare 部署**：Cloudflare KV，与平台无缝集成
+
+## 5. 配置方式
+
+通过环境变量配置存储方案：
+
+| 环境变量 | 描述 |
+|---------|------|
+| NEXT_PUBLIC_STORAGE_TYPE | 存储类型 (localstorage, redis, upstash, kvrocks, cf-kv) |
+| REDIS_URL | Redis 连接 URL |
+| UPSTASH_REDIS_URL | Upstash Redis URL |
+| UPSTASH_REDIS_TOKEN | Upstash Redis Token |
+| KVROCKS_URL | Kvrocks 连接 URL |
+
+## 6. 容错和重试机制
+
+### 6.1 Redis/Kvrocks 重试机制
+
+Redis 和 Kvrocks 实现了连接重试和断线重连机制：
+
+```typescript
+// 重连策略：指数退避，最大30秒
+reconnectStrategy: (retries: number) => {
+  console.log(`${config.clientName} reconnection attempt ${retries + 1}`);
+  if (retries > 10) {
+    console.error(`${config.clientName} max reconnection attempts exceeded`);
+    return false; // 停止重连
+  }
+  // 指数退避算法
+  return Math.min(retries * 500, 30000);
+}
+```
+
+### 6.2 Upstash 重试机制
+
+Upstash 实现了针对网络波动的重试机制：
+
+```typescript
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries = 3
+): Promise<T> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (err: any) {
+      const isLastAttempt = i === maxRetries - 1;
+      const isConnectionError =
+        err.message?.includes('Connection') ||
+        err.message?.includes('ECONNREFUSED') ||
+        err.message?.includes('ENOTFOUND') ||
+        err.code === 'ECONNRESET' ||
+        err.code === 'EPIPE' ||
+        err.name === 'UpstashError';
+
+      if (isConnectionError && !isLastAttempt) {
+        // 等待一段时间后重试
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1)));
+        continue;
+      }
+
+      throw err;
+    }
+  }
+
+  throw new Error('Max retries exceeded');
+}
+```
+
+## 7. 性能优化
+
+### 7.1 连接复用
+
+所有存储方案都实现了连接复用，避免重复创建连接带来的性能损耗。
+
+### 7.2 批量操作
+
+在可能的情况下，使用批量操作减少网络往返次数。
+
+### 7.3 缓存机制
+
+项目实现了多层缓存机制，减少对数据库的直接访问。
+
+## 8. 安全考虑
+
+### 8.1 认证和授权
+
+所有存储操作都与用户认证系统集成，确保数据安全。
+
+### 8.2 数据隔离
+
+不同用户的数据通过命名空间进行隔离，防止数据泄露。
+
+### 8.3 传输加密
+
+建议在生产环境中使用 TLS/SSL 加密传输数据。
+
+## 9. 总结
+
+LunaTV 的数据存储架构设计灵活且健壮，支持多种存储方案以适应不同的部署需求。通过统一的接口设计和工厂模式，系统可以轻松切换不同的存储后端，同时保持业务逻辑的一致性。每种存储方案都针对其特定的使用场景进行了优化，并实现了相应的容错和重试机制，确保系统的稳定性和可靠性。
