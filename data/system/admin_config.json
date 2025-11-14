@@ -1,0 +1,82 @@
+{
+  "ConfigFile": "",
+  "ConfigSubscribtion": {
+    "URL": "",
+    "AutoUpdate": false,
+    "LastCheck": ""
+  },
+  "SiteConfig": {
+    "SiteName": "MoonTV",
+    "Announcement": "本网站仅提供影视信息搜索服务，所有内容均来自第三方网站。本站不存储任何视频资源，不对任何内容的准确性、合法性、完整性负责。",
+    "SearchDownstreamMaxPage": 5,
+    "SiteInterfaceCacheTime": 7200,
+    "DoubanProxyType": "direct",
+    "DoubanProxy": "",
+    "DoubanImageProxyType": "direct",
+    "DoubanImageProxy": "",
+    "DisableYellowFilter": false,
+    "ShowAdultContent": false,
+    "FluidSearch": true,
+    "TMDBApiKey": "",
+    "TMDBLanguage": "zh-CN",
+    "EnableTMDBActorSearch": false
+  },
+  "UserConfig": {
+    "AllowRegister": true,
+    "Users": [
+      {
+        "username": "liulang",
+        "role": "owner",
+        "banned": false
+      },
+      {
+        "username": "admin",
+        "role": "user",
+        "banned": false
+      }
+    ]
+  },
+  "SourceConfig": [],
+  "CustomCategories": [],
+  "LiveConfig": [],
+  "NetDiskConfig": {
+    "enabled": true,
+    "pansouUrl": "https://so.252035.xyz",
+    "timeout": 30,
+    "enabledCloudTypes": [
+      "baidu",
+      "aliyun",
+      "quark"
+    ]
+  },
+  "AIRecommendConfig": {
+    "enabled": false,
+    "apiUrl": "https://api.openai.com/v1",
+    "apiKey": "",
+    "model": "gpt-3.5-turbo",
+    "temperature": 0.7,
+    "maxTokens": 3000
+  },
+  "YouTubeConfig": {
+    "enabled": false,
+    "apiKey": "",
+    "enableDemo": true,
+    "maxResults": 25,
+    "enabledRegions": [
+      "US",
+      "CN",
+      "JP",
+      "KR",
+      "GB",
+      "DE",
+      "FR"
+    ],
+    "enabledCategories": [
+      "Film & Animation",
+      "Music",
+      "Gaming",
+      "News & Politics",
+      "Entertainment"
+    ]
+  }
+}

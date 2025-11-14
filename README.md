@@ -271,7 +271,7 @@
 
 Kvrocks 是基于 RocksDB 的持久化 Redis 协议兼容存储，推荐用于生产环境。
 
-```yml
+``yml
 services:
   moontv-core:
     image: ghcr.io/szemeng76/lunatv:latest
@@ -313,7 +313,7 @@ volumes:
 
 Redis 默认配置可能导致数据丢失，需要开启持久化。
 
-```yml
+``yml
 services:
   moontv-core:
     image: ghcr.io/szemeng76/lunatv:latest
@@ -354,7 +354,7 @@ networks:
 2. 复制 **HTTPS ENDPOINT** 和 **TOKEN**
 3. 使用以下配置：
 
-```yml
+``yml
 services:
   moontv-core:
     image: ghcr.io/szemeng76/lunatv:latest
@@ -566,7 +566,7 @@ Zeabur 是一站式云端部署平台，使用预构建的 Docker 镜像可以�
 
 ### 📝 配置文件格式
 
-```json
+``json
 {
   "cache_time": 7200,
   "api_site": {
@@ -616,22 +616,22 @@ Zeabur 是一站式云端部署平台，使用预构建的 Docker 镜像可以�
 
 ## 🌐 环境变量
 
-### 必填变量
+### 必需变量
 
-| 变量                     | 说明           | 示例值                |
-| ------------------------ | -------------- | --------------------- |
-| `USERNAME`               | 站长账号       | `admin`               |
-| `PASSWORD`               | 站长密码       | `your_secure_password`|
-| `NEXT_PUBLIC_STORAGE_TYPE` | 存储类型     | `kvrocks` / `redis` / `upstash` |
+| 变量名                   | 描述         | 示例值                  |
+| ------------------------ | ------------ | ----------------------- |
+| `USERNAME`               | 管理员账号   | `admin`                 |
+| `PASSWORD`               | 管理员密码   | `your_secure_password`  |
+| `NEXT_PUBLIC_STORAGE_TYPE` | 存储类型   | `file` / `kvrocks` / `redis` / `upstash` |
 
 ### 存储配置
 
-| 变量              | 说明                 | 示例值                          |
-| ----------------- | -------------------- | ------------------------------- |
-| `KVROCKS_URL`     | Kvrocks 连接 URL      | `redis://moontv-kvrocks:6666`   |
-| `REDIS_URL`       | Redis 连接 URL        | `redis://moontv-redis:6379`     |
-| `UPSTASH_URL`     | Upstash 端点          | `https://xxx.upstash.io`        |
-| `UPSTASH_TOKEN`   | Upstash Token         | `AxxxxxxxxxxxxxxxxxxxxxxxxxxxQ==`|
+| 变量名        | 描述              | 示例值                         |
+| ------------- | ----------------- | ------------------------------ |
+| `KVROCKS_URL` | Kvrocks连接地址   | `redis://moontv-kvrocks:6666`  |
+| `REDIS_URL`   | Redis连接地址     | `redis://moontv-redis:6379`    |
+| `UPSTASH_URL` | Upstash终端节点   | `https://xxx.upstash.io`       |
+| `UPSTASH_TOKEN` | Upstash Token   | `AxxxxxxxxxxxxxxxxxxxxxxxxxxxQ==` |
 
 ### 可选配置
 
@@ -794,7 +794,7 @@ Zeabur 是一站式云端部署平台，使用预构建的 Docker 镜像可以�
 
 [Watchtower](https://github.com/containrrr/watchtower) 可自动检测并更新 Docker 容器到最新镜像。
 
-```yml
+``yml
 services:
   watchtower:
     image: containrrr/watchtower

@@ -91,7 +91,48 @@ localStorage 是默认的存储方案，适用于单用户或测试环境。数�
 - 单用户使用场景
 - 临时演示环境
 
-### 3.2 Redis
+### 3.2 File Storage（文件存储）
+
+File Storage 是新的默认存储方案，使用文件系统存储所有数据。适用于小型部署或测试环境。
+
+**实现细节：**
+- 基于 Node.js 的文件系统 API 实现
+- 数据存储在项目目录的 [data](file:///home/liulang/projects/backup/LunaTV/data/) 文件夹中
+- 用户数据分别存储在各自的子目录中
+- 系统数据存储在 [system](file:///home/liulang/projects/backup/LunaTV/src/server/api/system.ts#L6-L6) 子目录中
+- 实现了完整的 [IStorage](file:///home/liulang/projects/backup/LunaTV/src/lib/types.ts#L83-L139) 接口
+
+**代码结构：**
+``typescript
+// src/lib/file.db.ts
+export class FileStorage implements IStorage {
+  // 实现所有 IStorage 接口方法
+  async getPlayRecord(userName: string, key: string): Promise<PlayRecord | null> {
+    // 读取用户播放记录文件
+  }
+  
+  async setPlayRecord(userName: string, key: string, record: PlayRecord): Promise<void> {
+    // 写入用户播放记录文件
+  }
+  
+  // ... 其他方法
+}
+```
+
+**特点：**
+- 使用文件系统存储数据
+- 无需额外的数据库服务
+- 数据持久化存储在磁盘上
+- 支持多用户隔离
+- 适用于小型部署环境
+- 易于备份和迁移
+
+**使用场景：**
+- 小型部署环境
+- 测试和开发环境
+- 不想配置数据库的简单使用场景
+
+### 3.3 Redis
 
 Redis 是一个高性能的键值存储系统，适用于需要数据持久化和多设备同步的场景。
 
@@ -128,7 +169,7 @@ export class RedisStorage extends BaseRedisStorage {
 - 需要数据持久化
 - 多用户、多设备使用场景
 
-### 3.3 Kvrocks
+### 3.4 Kvrocks
 
 Kvrocks 是一个兼容 Redis 协议的分布式存储系统，基于 RocksDB 实现。
 
@@ -164,7 +205,7 @@ export class KvrocksStorage extends BaseRedisStorage {
 - 需要高性能和高可靠性
 - 分布式部署需求
 
-### 3.4 Upstash Redis
+### 3.5 Upstash Redis
 
 Upstash Redis 是一个无服务器的 Redis 服务，适用于无服务器部署场景。
 
@@ -205,7 +246,7 @@ export class UpstashRedisStorage implements IStorage {
 - 希望减少运维工作量
 - 按需付费场景
 
-### 3.5 Cloudflare KV
+### 3.6 Cloudflare KV
 
 Cloudflare KV 是 Cloudflare 提供的全球分布式键值存储服务。
 
