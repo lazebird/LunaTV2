@@ -10,6 +10,6 @@
 ```bash
 docker login --username=lazebird@163.com registry.cn-hangzhou.aliyuncs.com
 
-build --tag registry.cn-hangzhou.aliyuncs.com/lazebird/lunatv .
+docker build --tag registry.cn-hangzhou.aliyuncs.com/lazebird/lunatv .
 docker push registry.cn-hangzhou.aliyuncs.com/lazebird/lunatv
 ```
