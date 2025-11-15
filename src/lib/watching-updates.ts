@@ -287,7 +287,7 @@ async function checkSingleRecordUpdate(record: PlayRecord, videoId: string, stor
     }
 
     // 使用映射后的key调用API（API已默认不缓存，确保集数信息实时更新）
-    const apiUrl = `/api/detail?source=${sourceKey}&id=${videoId}`;
+    const apiUrl = `/api/detail?source=${encodeURIComponent(sourceKey)}&id=${encodeURIComponent(videoId)}`;
     console.log(`${record.title} 调用API获取最新详情:`, apiUrl);
     const response = await fetch(apiUrl);
     if (!response.ok) {

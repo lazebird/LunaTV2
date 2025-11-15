@@ -1619,11 +1619,11 @@ function PlayPageClient() {
         // 判断是否为短剧源
         if (source === 'shortdrama') {
           detailResponse = await fetch(
-            `/api/shortdrama/detail?id=${id}&episode=1`
+            `/api/shortdrama/detail?id=${encodeURIComponent(id)}&episode=1`
           );
         } else {
           detailResponse = await fetch(
-            `/api/detail?source=${source}&id=${id}`
+            `/api/detail?source=${encodeURIComponent(source)}&id=${encodeURIComponent(id)}`
           );
         }
 
