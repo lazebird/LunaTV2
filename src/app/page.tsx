@@ -621,7 +621,7 @@ function HomeClient() {
       {/* Telegram 新用户欢迎弹窗 */}
       <TelegramWelcomeModal />
 
-      <div className='overflow-visible -mt-6 md:mt-0'>
+      <div className='overflow-hidden -mt-6 md:mt-0 h-full flex flex-col'>
         {/* 欢迎横幅 - 现代化精简设计 */}
         <div className='mb-6 relative overflow-hidden rounded-xl bg-gradient-to-r from-blue-500/90 via-purple-500/90 to-pink-500/90 backdrop-blur-sm shadow-xl border border-white/20'>
           <div className='relative p-4 sm:p-5'>
@@ -690,7 +690,7 @@ function HomeClient() {
           )}
         </div>
 
-        <div className='w-full mx-auto'>
+        <div className='w-full mx-auto flex-1 overflow-y-auto'>
           {activeTab === 'favorites' ? (
             // 收藏夹视图
             <section className='mb-8'>

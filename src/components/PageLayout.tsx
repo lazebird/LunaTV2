@@ -19,7 +19,7 @@ const PageLayout = ({ children, activePath = '/', useModernNav = true }: PageLay
   if (useModernNav) {
     // 2025 Modern Navigation Layout
     return (
-      <div className='w-full min-h-screen'>
+      <div className='w-full h-screen flex flex-col'>
         {/* Modern Navigation - Top (Desktop) & Bottom (Mobile) */}
         <ModernNav />
 
@@ -40,8 +40,8 @@ const PageLayout = ({ children, activePath = '/', useModernNav = true }: PageLay
         </div>
 
         {/* Main Content - 移动端44px，桌面端64px */}
-        <main className='w-full min-h-screen pt-[44px] md:pt-16 pb-32 md:pb-8'>
-          <div className='w-full max-w-[2560px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20'>
+        <main className='w-full flex-1 pt-[44px] md:pt-16 pb-32 md:pb-8 overflow-y-auto'>
+          <div className='w-full max-w-[2560px] mx-auto h-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20'>
             {children}
           </div>
         </main>
@@ -51,19 +51,19 @@ const PageLayout = ({ children, activePath = '/', useModernNav = true }: PageLay
 
   // Legacy Sidebar Layout (原来的设计)
   return (
-    <div className='w-full min-h-screen'>
+    <div className='w-full h-screen flex flex-col'>
       {/* 移动端头部 */}
       <MobileHeader showBackButton={['/play', '/live'].includes(activePath)} />
 
       {/* 主要布局容器 */}
-      <div className='flex md:grid md:grid-cols-[auto_1fr] w-full min-h-screen md:min-h-auto'>
+      <div className='flex md:grid md:grid-cols-[auto_1fr] w-full flex-1'>
         {/* 侧边栏 - 桌面端显示，移动端隐藏 */}
         <div className='hidden md:block'>
           <Sidebar activePath={activePath} />
         </div>
 
         {/* 主内容区域 */}
-        <div className='relative min-w-0 flex-1 transition-all duration-300'>
+        <div className='relative min-w-0 flex-1 transition-all duration-300 flex flex-col'>
           {/* 桌面端左上角返回按钮 */}
           {['/play', '/live'].includes(activePath) && (
             <div className='absolute top-3 left-1 z-20 hidden md:flex'>
@@ -79,7 +79,7 @@ const PageLayout = ({ children, activePath = '/', useModernNav = true }: PageLay
 
           {/* 主内容 */}
           <main
-            className='flex-1 md:min-h-0 mb-14 md:mb-0 md:mt-0 mt-12'
+            className='flex-1 md:min-h-0 mb-14 md:mb-0 md:mt-0 mt-12 overflow-y-auto'
             style={{
               paddingBottom: 'calc(3.5rem + env(safe-area-inset-bottom))',
             }}

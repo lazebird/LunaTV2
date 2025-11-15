@@ -6979,7 +6979,7 @@ function AdminPageClient() {
 
   return (
     <PageLayout activePath='/admin'>
-      <div className='-mt-6 md:mt-0 flex h-[calc(100vh-5rem)]'>
+      <div className='flex h-full'>
         {/* 左侧菜单 */}
         <div className='w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto'>
           <div className='p-4'>
