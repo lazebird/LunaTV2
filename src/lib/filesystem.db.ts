@@ -4,6 +4,9 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 import { AdminConfig } from './admin.types';
+import { CacheManager } from './filesystem/cache-manager';
+import { FileOperations } from './filesystem/file-operations';
+import { StatisticsCalculator } from './filesystem/statistics-calculator';
 import {
   ContentStat,
   EpisodeSkipConfig,
@@ -13,9 +16,6 @@ import {
   PlayStatsResult,
   UserPlayStat,
 } from './types';
-import { CacheManager } from './filesystem/cache-manager';
-import { FileOperations } from './filesystem/file-operations';
-import { StatisticsCalculator } from './filesystem/statistics-calculator';
 
 // 搜索历史最大条数
 const SEARCH_HISTORY_LIMIT = 20;
@@ -31,11 +31,12 @@ export class FileSystemStorage implements IStorage {
   private dataDir: string;
 
   constructor() {
-    this.dataDir = process.env.FILE_SYSTEM_DATA_DIR || path.join(process.cwd(), 'data');
-    
+    this.dataDir =
+      process.env.FILE_SYSTEM_DATA_DIR || path.join(process.cwd(), 'data');
+
     // 初始化文件操作工具
     this.fileOps = new FileOperations(this.dataDir);
-    
+
     // 初始化缓存管理器
     this.cacheManager = new CacheManager(this.fileOps, {
       maxSize: 1000,
@@ -43,7 +44,7 @@ export class FileSystemStorage implements IStorage {
       cleanupInterval: 60 * 1000, // 1分钟
       enableMemoryCache: true,
     });
-    
+
     // 初始化目录结构
     this.initDirectories().catch(console.error);
   }
@@ -63,7 +64,7 @@ export class FileSystemStorage implements IStorage {
       'cache/danmu',
       'stats/userstats',
     ];
-    
+
     await this.fileOps.initDirectories(directories);
     console.log(`[FileSystem] 数据目录初始化完成: ${this.dataDir}`);
   }
@@ -78,7 +79,9 @@ export class FileSystemStorage implements IStorage {
   }
 
   private getUserFilePath(username: string, fileName: string): string {
-    return this.fileOps.getAbsolutePath(path.join(this.getUserDir(username), fileName));
+    return this.fileOps.getAbsolutePath(
+      path.join(this.getUserDir(username), fileName)
+    );
   }
 
   private getConfigFilePath(fileName: string): string {
@@ -90,11 +93,17 @@ export class FileSystemStorage implements IStorage {
   }
 
   private getUserStatsFilePath(username: string): string {
-    return this.fileOps.getAbsolutePath(path.join('stats/userstats', `${username}.json`));
+    return this.fileOps.getAbsolutePath(
+      path.join('stats/userstats', `${username}.json`)
+    );
   }
 
   // 缓存辅助方法
-  private async getWithCache<T>(category: string, key: string, fetcher: () => Promise<T>): Promise<T> {
+  private async getWithCache<T>(
+    category: string,
+    key: string,
+    fetcher: () => Promise<T>
+  ): Promise<T> {
     // 先检查缓存
     const cached = await this.cacheManager.get<T>(category, key);
     if (cached !== null) {
@@ -103,10 +112,10 @@ export class FileSystemStorage implements IStorage {
 
     // 从数据源获取
     const data = await fetcher();
-    
+
     // 更新缓存
     await this.cacheManager.set(category, key, data);
-    
+
     return data;
   }
 
@@ -117,7 +126,9 @@ export class FileSystemStorage implements IStorage {
   ): Promise<PlayRecord | null> {
     return this.getWithCache(`playrecords_${userName}`, key, async () => {
       const filePath = this.getUserFilePath(userName, 'playrecords.json');
-      const records = await this.fileOps.readJsonFile<Record<string, PlayRecord>>(filePath);
+      const records = await this.fileOps.readJsonFile<
+        Record<string, PlayRecord>
+      >(filePath);
       return records?.[key] || null;
     });
   }
@@ -129,11 +140,13 @@ export class FileSystemStorage implements IStorage {
   ): Promise<void> {
     await this.ensureUserDir(userName);
     const filePath = this.getUserFilePath(userName, 'playrecords.json');
-    
-    const records = await this.fileOps.readJsonFile<Record<string, PlayRecord>>(filePath) || {};
+
+    const records =
+      (await this.fileOps.readJsonFile<Record<string, PlayRecord>>(filePath)) ||
+      {};
     records[key] = record;
     await this.fileOps.writeJsonFile(filePath, records);
-    
+
     // 更新缓存
     await this.cacheManager.set(`playrecords_${userName}`, key, record);
   }
@@ -142,24 +155,28 @@ export class FileSystemStorage implements IStorage {
     userName: string
   ): Promise<Record<string, PlayRecord>> {
     const filePath = this.getUserFilePath(userName, 'playrecords.json');
-    const records = await this.fileOps.readJsonFile<Record<string, PlayRecord>>(filePath);
-    
+    const records = await this.fileOps.readJsonFile<Record<string, PlayRecord>>(
+      filePath
+    );
+
     if (records) {
       // 批量更新缓存
       const cacheEntries = Object.entries(records).map(([key, record]) => ({
         key,
-        data: record
+        data: record,
       }));
       await this.cacheManager.mset(`playrecords_${userName}`, cacheEntries);
     }
-    
+
     return records || {};
   }
 
   async deletePlayRecord(userName: string, key: string): Promise<void> {
     const filePath = this.getUserFilePath(userName, 'playrecords.json');
-    
-    const records = await this.fileOps.readJsonFile<Record<string, PlayRecord>>(filePath);
+
+    const records = await this.fileOps.readJsonFile<Record<string, PlayRecord>>(
+      filePath
+    );
     if (records && records[key]) {
       delete records[key];
       await this.fileOps.writeJsonFile(filePath, records);
@@ -171,7 +188,9 @@ export class FileSystemStorage implements IStorage {
   async getFavorite(userName: string, key: string): Promise<Favorite | null> {
     return this.getWithCache(`favorites_${userName}`, key, async () => {
       const filePath = this.getUserFilePath(userName, 'favorites.json');
-      const favorites = await this.fileOps.readJsonFile<Record<string, Favorite>>(filePath);
+      const favorites = await this.fileOps.readJsonFile<
+        Record<string, Favorite>
+      >(filePath);
       return favorites?.[key] || null;
     });
   }
@@ -183,35 +202,41 @@ export class FileSystemStorage implements IStorage {
   ): Promise<void> {
     await this.ensureUserDir(userName);
     const filePath = this.getUserFilePath(userName, 'favorites.json');
-    
-    const favorites = await this.fileOps.readJsonFile<Record<string, Favorite>>(filePath) || {};
+
+    const favorites =
+      (await this.fileOps.readJsonFile<Record<string, Favorite>>(filePath)) ||
+      {};
     favorites[key] = favorite;
     await this.fileOps.writeJsonFile(filePath, favorites);
-    
+
     // 更新缓存
     await this.cacheManager.set(`favorites_${userName}`, key, favorite);
   }
 
   async getAllFavorites(userName: string): Promise<Record<string, Favorite>> {
     const filePath = this.getUserFilePath(userName, 'favorites.json');
-    const favorites = await this.fileOps.readJsonFile<Record<string, Favorite>>(filePath);
-    
+    const favorites = await this.fileOps.readJsonFile<Record<string, Favorite>>(
+      filePath
+    );
+
     if (favorites) {
       // 批量更新缓存
       const cacheEntries = Object.entries(favorites).map(([key, favorite]) => ({
         key,
-        data: favorite
+        data: favorite,
       }));
       await this.cacheManager.mset(`favorites_${userName}`, cacheEntries);
     }
-    
+
     return favorites || {};
   }
 
   async deleteFavorite(userName: string, key: string): Promise<void> {
     const filePath = this.getUserFilePath(userName, 'favorites.json');
-    
-    const favorites = await this.fileOps.readJsonFile<Record<string, Favorite>>(filePath);
+
+    const favorites = await this.fileOps.readJsonFile<Record<string, Favorite>>(
+      filePath
+    );
     if (favorites && favorites[key]) {
       delete favorites[key];
       await this.fileOps.writeJsonFile(filePath, favorites);
@@ -226,13 +251,13 @@ export class FileSystemStorage implements IStorage {
 
   async registerUser(userName: string, password: string): Promise<void> {
     await this.ensureUserDir(userName);
-    
+
     // 检查用户是否已存在
     const exists = await this.checkUserExist(userName);
     if (exists) {
       throw new Error('用户已存在');
     }
-    
+
     // 保存用户信息
     const profilePath = this.getUserProfilePath(userName);
     const profile = {
@@ -241,9 +266,9 @@ export class FileSystemStorage implements IStorage {
       createdAt: Date.now(),
       lastLoginTime: 0,
       loginCount: 0,
-      role: 'user'
+      role: 'user',
     };
-    
+
     await this.fileOps.writeJsonFile(profilePath, profile);
     console.log(`[FileSystem] 用户注册成功: ${userName}`);
   }
@@ -251,11 +276,11 @@ export class FileSystemStorage implements IStorage {
   async verifyUser(userName: string, password: string): Promise<boolean> {
     const profilePath = this.getUserProfilePath(userName);
     const profile = await this.fileOps.readJsonFile<any>(profilePath);
-    
+
     if (!profile) {
       return false;
     }
-    
+
     return ensureString(profile.password) === password;
   }
 
@@ -268,21 +293,21 @@ export class FileSystemStorage implements IStorage {
   async changePassword(userName: string, newPassword: string): Promise<void> {
     const profilePath = this.getUserProfilePath(userName);
     const profile = await this.fileOps.readJsonFile<any>(profilePath);
-    
+
     if (!profile) {
       throw new Error('用户不存在');
     }
-    
+
     profile.password = newPassword; // 生产环境应加密
     profile.updatedAt = Date.now();
-    
+
     await this.fileOps.writeJsonFile(profilePath, profile);
     console.log(`[FileSystem] 用户密码已更新: ${userName}`);
   }
 
   async deleteUser(userName: string): Promise<void> {
     const userDir = this.fileOps.getAbsolutePath(this.getUserDir(userName));
-    
+
     try {
       // 删除整个用户目录
       await fs.rm(userDir, { recursive: true, force: true });
@@ -298,9 +323,9 @@ export class FileSystemStorage implements IStorage {
       const usersDir = this.fileOps.getAbsolutePath('users');
       const entries = await fs.readdir(usersDir, { withFileTypes: true });
       const users = entries
-        .filter(entry => entry.isDirectory())
-        .map(entry => ensureString(entry.name));
-      
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => ensureString(entry.name));
+
       return users;
     } catch (error) {
       console.error('[FileSystem] 获取用户列表失败:', error);
@@ -320,34 +345,34 @@ export class FileSystemStorage implements IStorage {
   async addSearchHistory(userName: string, keyword: string): Promise<void> {
     await this.ensureUserDir(userName);
     const filePath = this.getUserFilePath(userName, 'searchhistory.json');
-    
-    let history = await this.fileOps.readJsonFile<string[]>(filePath) || [];
-    
+
+    let history = (await this.fileOps.readJsonFile<string[]>(filePath)) || [];
+
     // 去重
-    history = history.filter(item => item !== keyword);
-    
+    history = history.filter((item) => item !== keyword);
+
     // 插入到最前
     history.unshift(ensureString(keyword));
-    
+
     // 限制最大长度
     if (history.length > SEARCH_HISTORY_LIMIT) {
       history = history.slice(0, SEARCH_HISTORY_LIMIT);
     }
-    
+
     await this.fileOps.writeJsonFile(filePath, history);
-    
+
     // 更新缓存
     await this.cacheManager.set(`searchhistory_${userName}`, 'main', history);
   }
 
   async deleteSearchHistory(userName: string, keyword?: string): Promise<void> {
     const filePath = this.getUserFilePath(userName, 'searchhistory.json');
-    
+
     if (keyword) {
-      let history = await this.fileOps.readJsonFile<string[]>(filePath) || [];
-      history = history.filter(item => item !== keyword);
+      let history = (await this.fileOps.readJsonFile<string[]>(filePath)) || [];
+      history = history.filter((item) => item !== keyword);
       await this.fileOps.writeJsonFile(filePath, history);
-      
+
       // 更新缓存
       await this.cacheManager.set(`searchhistory_${userName}`, 'main', history);
     } else {
@@ -363,80 +388,113 @@ export class FileSystemStorage implements IStorage {
 
   async getAdminConfig(): Promise<AdminConfig | null> {
     const filePath = this.adminConfigPath();
-    const config = await this.fileOps.readJsonFile<AdminConfig>(filePath);
-    
-    // 处理源配置文件引用
-    if (config && (config as any)._sourceConfigFile) {
+    const rawConfig = await this.fileOps.readJsonFile<AdminConfig>(filePath);
+
+    if (!rawConfig) return null;
+
+    // 创建返回给调用者的配置对象
+    const config: AdminConfig = { ...rawConfig };
+
+    // 处理源配置文件引用 - 从独立文件加载源配置
+    if ((rawConfig as any)._sourceConfigFile) {
       try {
-        const sourceConfigPath = path.isAbsolute((config as any)._sourceConfigFile)
-          ? (config as any)._sourceConfigFile
-          : path.join(path.dirname(filePath), (config as any)._sourceConfigFile);
-        
-        const sources = await this.fileOps.readJsonFile<any[]>(sourceConfigPath);
+        const sourceConfigPath = path.isAbsolute(
+          (rawConfig as any)._sourceConfigFile
+        )
+          ? (rawConfig as any)._sourceConfigFile
+          : path.join(
+              path.dirname(filePath),
+              (rawConfig as any)._sourceConfigFile
+            );
+
+        const sources = await this.fileOps.readJsonFile<any[]>(
+          sourceConfigPath
+        );
         config.SourceConfig = sources || [];
       } catch (error) {
         console.error('加载源配置文件失败:', error);
         config.SourceConfig = [];
       }
+    } else {
+      // 如果没有源配置文件引用，确保SourceConfig是空数组
+      config.SourceConfig = config.SourceConfig || [];
     }
-    
+
+    // 确保ConfigFile字段存在（为了兼容接口使用者）
+    if (!config.ConfigFile) {
+      config.ConfigFile = '';
+    }
+
     return config;
   }
 
   async setAdminConfig(config: AdminConfig): Promise<void> {
     const filePath = this.adminConfigPath();
-    
-    // 检查是否需要保存源配置到文件
-    const existingConfig = await this.fileOps.readJsonFile<AdminConfig>(filePath).catch(() => null);
-    
-    // 如果ConfigFile不为空，说明是从config_file API传入的配置内容，需要生成独立的源配置文件
-    if (config.ConfigFile && config.ConfigFile.trim() !== '') {
-      try {
+    const existingConfig = await this.fileOps
+      .readJsonFile<AdminConfig>(filePath)
+      .catch(() => null);
+
+    // 准备要保存到文件的配置对象（清理冗余字段）
+    const configToSave: any = { ...config };
+
+    // 删除ConfigFile和SourceConfig字段，确保admin.json文件清晰
+    delete configToSave.ConfigFile;
+    delete configToSave.SourceConfig;
+
+    try {
+      // 处理源配置保存
+      if (config.ConfigFile && config.ConfigFile.trim() !== '') {
+        // 如果ConfigFile不为空，说明是从config_file API传入的配置内容
         const configData = JSON.parse(config.ConfigFile);
-        const sourceSources = this.extractSourceConfigFromConfigData(configData);
-        
+        const sourceSources =
+          this.extractSourceConfigFromConfigData(configData);
+
         // 创建源配置文件路径
-        const sourceConfigFileName = 'source_config.json';
+        const sourceConfigFileName = 'source.json';
         const sourceConfigPath = this.getConfigFilePath(sourceConfigFileName);
-        
+
         // 保存源配置到单独的文件
         await this.fileOps.writeJsonFile(sourceConfigPath, sourceSources);
         console.log(`源配置已保存到文件: ${sourceConfigPath}`);
-        
-        // 保存admin配置，添加_sourceConfigFile字段引用，清空ConfigFile字段
-        const configToSave = { 
-          ...config, 
-          SourceConfig: sourceSources || [], // 同时更新SourceConfig数组
-          ConfigFile: '', // 清空ConfigFile字段
-          _sourceConfigFile: sourceConfigFileName // 添加源配置文件引用
-        };
-        await this.fileOps.writeJsonFile(filePath, configToSave);
-      } catch (error) {
-        console.error('保存源配置文件失败:', error);
-        // 如果保存失败，回退到原始方式
-        await this.fileOps.writeJsonFile(filePath, config);
-      }
-    } else if (existingConfig && (existingConfig as any)._sourceConfigFile) {
-      // 如果已有源配置文件引用，但ConfigFile为空，则更新源配置文件
-      const sourceConfigPath = path.isAbsolute((existingConfig as any)._sourceConfigFile)
-        ? (existingConfig as any)._sourceConfigFile
-        : path.join(path.dirname(filePath), (existingConfig as any)._sourceConfigFile);
-      
-      try {
-        await this.fileOps.writeJsonFile(sourceConfigPath, config.SourceConfig || []);
+
+        // 添加源配置文件引用
+        configToSave._sourceConfigFile = sourceConfigFileName;
+      } else if (config.SourceConfig && config.SourceConfig.length > 0) {
+        // 如果SourceConfig有内容，保存到独立文件
+        const sourceConfigFileName = 'source.json';
+        const sourceConfigPath = this.getConfigFilePath(sourceConfigFileName);
+
+        await this.fileOps.writeJsonFile(sourceConfigPath, config.SourceConfig);
         console.log(`源配置已更新到文件: ${sourceConfigPath}`);
-        
-        // 保留 _sourceConfigFile 字段，但清空 ConfigFile字段
-        const configToSave = { ...config, ConfigFile: '' };
-        await this.fileOps.writeJsonFile(filePath, configToSave);
-      } catch (error) {
-        console.error('更新源配置文件失败:', error);
-        // 如果更新失败，回退到原始方式
-        await this.fileOps.writeJsonFile(filePath, config);
+
+        // 添加源配置文件引用
+        configToSave._sourceConfigFile = sourceConfigFileName;
+      } else if (existingConfig && (existingConfig as any)._sourceConfigFile) {
+        // 如果配置为空但之前有源配置文件，保持引用不变
+        configToSave._sourceConfigFile = (
+          existingConfig as any
+        )._sourceConfigFile;
+
+        // 清空源配置文件内容
+        const sourceConfigPath = path.isAbsolute(
+          (existingConfig as any)._sourceConfigFile
+        )
+          ? (existingConfig as any)._sourceConfigFile
+          : path.join(
+              path.dirname(filePath),
+              (existingConfig as any)._sourceConfigFile
+            );
+
+        await this.fileOps.writeJsonFile(sourceConfigPath, []);
+        console.log(`源配置文件已清空: ${sourceConfigPath}`);
       }
-    } else {
-      // 正常保存整个配置
-      await this.fileOps.writeJsonFile(filePath, config);
+
+      // 保存清理后的admin配置
+      await this.fileOps.writeJsonFile(filePath, configToSave);
+      console.log(`管理员配置已保存，已清理冗余字段`);
+    } catch (error) {
+      console.error('保存配置失败:', error);
+      throw error;
     }
   }
 
@@ -445,45 +503,56 @@ export class FileSystemStorage implements IStorage {
    */
   private extractSourceConfigFromConfigData(configData: any): any[] {
     const sourceSources: any[] = [];
-    
+
     // 从 api_site 中提取源配置
     if (configData.api_site) {
-      Object.entries(configData.api_site).forEach(([key, site]: [string, any]) => {
-        sourceSources.push({
-          key,
-          name: site.name,
-          api: site.api,
-          detail: site.detail || '',
-          from: 'config',
-          disabled: false
-        });
-      });
+      Object.entries(configData.api_site).forEach(
+        ([key, site]: [string, any]) => {
+          sourceSources.push({
+            key,
+            name: site.name,
+            api: site.api,
+            detail: site.detail || '',
+            from: 'config',
+            disabled: false,
+          });
+        }
+      );
     }
-    
+
     return sourceSources;
   }
 
   /**
    * 保存订阅配置到源配置文件
    */
-  async saveSubscriptionConfigToSourceFile(configContent: string): Promise<boolean> {
+  async saveSubscriptionConfigToSourceFile(
+    configContent: string
+  ): Promise<boolean> {
     try {
       const configData = JSON.parse(configContent);
       const sourceSources = this.extractSourceConfigFromConfigData(configData);
-      
+
       const filePath = this.adminConfigPath();
-      const existingConfig = await this.fileOps.readJsonFile<AdminConfig>(filePath).catch(() => null);
-      
+      const existingConfig = await this.fileOps
+        .readJsonFile<AdminConfig>(filePath)
+        .catch(() => null);
+
       if (existingConfig && (existingConfig as any)._sourceConfigFile) {
-        const sourceConfigPath = path.isAbsolute((existingConfig as any)._sourceConfigFile)
+        const sourceConfigPath = path.isAbsolute(
+          (existingConfig as any)._sourceConfigFile
+        )
           ? (existingConfig as any)._sourceConfigFile
-          : path.join(path.dirname(filePath), (existingConfig as any)._sourceConfigFile);
-        
+          : path.join(
+              path.dirname(filePath),
+              (existingConfig as any)._sourceConfigFile
+            );
+
         await this.fileOps.writeJsonFile(sourceConfigPath, sourceSources);
         console.log(`订阅配置已保存到源配置文件: ${sourceConfigPath}`);
         return true;
       }
-      
+
       return false;
     } catch (error) {
       console.error('保存订阅配置到源配置文件失败:', error);
@@ -497,19 +566,28 @@ export class FileSystemStorage implements IStorage {
   async removeSourcesFromSourceFile(keys: string[]): Promise<boolean> {
     try {
       const filePath = this.adminConfigPath();
-      const existingConfig = await this.fileOps.readJsonFile<AdminConfig>(filePath).catch(() => null);
-      
+      const existingConfig = await this.fileOps
+        .readJsonFile<AdminConfig>(filePath)
+        .catch(() => null);
+
       if (!existingConfig || !(existingConfig as any)._sourceConfigFile) {
         return false;
       }
-      
-      const sourceConfigPath = path.isAbsolute((existingConfig as any)._sourceConfigFile)
+
+      const sourceConfigPath = path.isAbsolute(
+        (existingConfig as any)._sourceConfigFile
+      )
         ? (existingConfig as any)._sourceConfigFile
-        : path.join(path.dirname(filePath), (existingConfig as any)._sourceConfigFile);
-      
-      const sources = await this.fileOps.readJsonFile<any[]>(sourceConfigPath).catch(() => []);
+        : path.join(
+            path.dirname(filePath),
+            (existingConfig as any)._sourceConfigFile
+          );
+
+      const sources = await this.fileOps
+        .readJsonFile<any[]>(sourceConfigPath)
+        .catch(() => []);
       const initialLength = sources?.length || 0;
-      
+
       // 删除指定的源
       if (sources) {
         for (const key of keys) {
@@ -518,14 +596,16 @@ export class FileSystemStorage implements IStorage {
             sources.splice(sourceIndex, 1);
           }
         }
-        
+
         if (sources.length < initialLength) {
           await this.fileOps.writeJsonFile(sourceConfigPath, sources);
-          console.log(`已从源配置文件删除 ${initialLength - sources.length} 个源`);
+          console.log(
+            `已从源配置文件删除 ${initialLength - sources.length} 个源`
+          );
           return true;
         }
       }
-      
+
       return false;
     } catch (error) {
       console.error('从源配置文件删除源失败:', error);
@@ -539,12 +619,18 @@ export class FileSystemStorage implements IStorage {
     source: string,
     id: string
   ): Promise<EpisodeSkipConfig | null> {
-    return this.getWithCache(`skipconfigs_${userName}`, `${source}+${id}`, async () => {
-      const filePath = this.getUserFilePath(userName, 'skipconfigs.json');
-      const configs = await this.fileOps.readJsonFile<Record<string, EpisodeSkipConfig>>(filePath);
-      const key = `${source}+${id}`;
-      return configs?.[key] || null;
-    });
+    return this.getWithCache(
+      `skipconfigs_${userName}`,
+      `${source}+${id}`,
+      async () => {
+        const filePath = this.getUserFilePath(userName, 'skipconfigs.json');
+        const configs = await this.fileOps.readJsonFile<
+          Record<string, EpisodeSkipConfig>
+        >(filePath);
+        const key = `${source}+${id}`;
+        return configs?.[key] || null;
+      }
+    );
   }
 
   async setSkipConfig(
@@ -555,20 +641,29 @@ export class FileSystemStorage implements IStorage {
   ): Promise<void> {
     await this.ensureUserDir(userName);
     const filePath = this.getUserFilePath(userName, 'skipconfigs.json');
-    
-    const configs = await this.fileOps.readJsonFile<Record<string, EpisodeSkipConfig>>(filePath) || {};
+
+    const configs =
+      (await this.fileOps.readJsonFile<Record<string, EpisodeSkipConfig>>(
+        filePath
+      )) || {};
     const key = `${source}+${id}`;
     configs[key] = config;
     await this.fileOps.writeJsonFile(filePath, configs);
-    
+
     // 更新缓存
     await this.cacheManager.set(`skipconfigs_${userName}`, key, config);
   }
 
-  async deleteSkipConfig(userName: string, source: string, id: string): Promise<void> {
+  async deleteSkipConfig(
+    userName: string,
+    source: string,
+    id: string
+  ): Promise<void> {
     const filePath = this.getUserFilePath(userName, 'skipconfigs.json');
-    
-    const configs = await this.fileOps.readJsonFile<Record<string, EpisodeSkipConfig>>(filePath);
+
+    const configs = await this.fileOps.readJsonFile<
+      Record<string, EpisodeSkipConfig>
+    >(filePath);
     if (configs) {
       const key = `${source}+${id}`;
       if (configs[key]) {
@@ -583,17 +678,19 @@ export class FileSystemStorage implements IStorage {
     userName: string
   ): Promise<{ [key: string]: EpisodeSkipConfig }> {
     const filePath = this.getUserFilePath(userName, 'skipconfigs.json');
-    const configs = await this.fileOps.readJsonFile<Record<string, EpisodeSkipConfig>>(filePath);
-    
+    const configs = await this.fileOps.readJsonFile<
+      Record<string, EpisodeSkipConfig>
+    >(filePath);
+
     if (configs) {
       // 批量更新缓存
       const cacheEntries = Object.entries(configs).map(([key, config]) => ({
         key,
-        data: config
+        data: config,
       }));
       await this.cacheManager.mset(`skipconfigs_${userName}`, cacheEntries);
     }
-    
+
     return configs || {};
   }
 
@@ -603,12 +700,21 @@ export class FileSystemStorage implements IStorage {
     source: string,
     id: string
   ): Promise<EpisodeSkipConfig | null> {
-    return this.getWithCache(`episodeskipconfigs_${userName}`, `${source}+${id}`, async () => {
-      const filePath = this.getUserFilePath(userName, 'episodeskipconfigs.json');
-      const configs = await this.fileOps.readJsonFile<Record<string, EpisodeSkipConfig>>(filePath);
-      const key = `${source}+${id}`;
-      return configs?.[key] || null;
-    });
+    return this.getWithCache(
+      `episodeskipconfigs_${userName}`,
+      `${source}+${id}`,
+      async () => {
+        const filePath = this.getUserFilePath(
+          userName,
+          'episodeskipconfigs.json'
+        );
+        const configs = await this.fileOps.readJsonFile<
+          Record<string, EpisodeSkipConfig>
+        >(filePath);
+        const key = `${source}+${id}`;
+        return configs?.[key] || null;
+      }
+    );
   }
 
   async saveEpisodeSkipConfig(
@@ -619,20 +725,29 @@ export class FileSystemStorage implements IStorage {
   ): Promise<void> {
     await this.ensureUserDir(userName);
     const filePath = this.getUserFilePath(userName, 'episodeskipconfigs.json');
-    
-    const configs = await this.fileOps.readJsonFile<Record<string, EpisodeSkipConfig>>(filePath) || {};
+
+    const configs =
+      (await this.fileOps.readJsonFile<Record<string, EpisodeSkipConfig>>(
+        filePath
+      )) || {};
     const key = `${source}+${id}`;
     configs[key] = config;
     await this.fileOps.writeJsonFile(filePath, configs);
-    
+
     // 更新缓存
     await this.cacheManager.set(`episodeskipconfigs_${userName}`, key, config);
   }
 
-  async deleteEpisodeSkipConfig(userName: string, source: string, id: string): Promise<void> {
+  async deleteEpisodeSkipConfig(
+    userName: string,
+    source: string,
+    id: string
+  ): Promise<void> {
     const filePath = this.getUserFilePath(userName, 'episodeskipconfigs.json');
-    
-    const configs = await this.fileOps.readJsonFile<Record<string, EpisodeSkipConfig>>(filePath);
+
+    const configs = await this.fileOps.readJsonFile<
+      Record<string, EpisodeSkipConfig>
+    >(filePath);
     if (configs) {
       const key = `${source}+${id}`;
       if (configs[key]) {
@@ -647,17 +762,22 @@ export class FileSystemStorage implements IStorage {
     userName: string
   ): Promise<{ [key: string]: EpisodeSkipConfig }> {
     const filePath = this.getUserFilePath(userName, 'episodeskipconfigs.json');
-    const configs = await this.fileOps.readJsonFile<Record<string, EpisodeSkipConfig>>(filePath);
-    
+    const configs = await this.fileOps.readJsonFile<
+      Record<string, EpisodeSkipConfig>
+    >(filePath);
+
     if (configs) {
       // 批量更新缓存
       const cacheEntries = Object.entries(configs).map(([key, config]) => ({
         key,
-        data: config
+        data: config,
       }));
-      await this.cacheManager.mset(`episodeskipconfigs_${userName}`, cacheEntries);
+      await this.cacheManager.mset(
+        `episodeskipconfigs_${userName}`,
+        cacheEntries
+      );
     }
-    
+
     return configs || {};
   }
 
@@ -667,11 +787,11 @@ export class FileSystemStorage implements IStorage {
       // 备份当前数据
       const backupDir = path.join(this.dataDir, `backup_${Date.now()}`);
       await this.fileOps.backupData(this.dataDir, path.basename(backupDir));
-      
+
       // 清空所有子目录
       const dirs = ['users', 'cache', 'config', 'stats', 'temp'];
       await Promise.all(
-        dirs.map(async dir => {
+        dirs.map(async (dir) => {
           try {
             const dirPath = this.fileOps.getAbsolutePath(dir);
             await fs.rm(dirPath, { recursive: true, force: true });
@@ -681,7 +801,7 @@ export class FileSystemStorage implements IStorage {
           }
         })
       );
-      
+
       console.log('[FileSystem] 所有数据已清空，备份已保存到:', backupDir);
     } catch (error) {
       console.error('[FileSystem] 清空数据失败:', error);
@@ -694,7 +814,11 @@ export class FileSystemStorage implements IStorage {
     return this.cacheManager.get('cache', key);
   }
 
-  async setCache(key: string, data: any, expireSeconds?: number): Promise<void> {
+  async setCache(
+    key: string,
+    data: any,
+    expireSeconds?: number
+  ): Promise<void> {
     await this.cacheManager.set('cache', key, data, expireSeconds);
   }
 
@@ -721,14 +845,16 @@ export class FileSystemStorage implements IStorage {
       for (const username of allUsers) {
         try {
           const playRecords = await this.getAllPlayRecords(username);
-          const userProfile = await this.fileOps.readJsonFile<any>(this.getUserFilePath(username, 'profile.json'));
-          
+          const userProfile = await this.fileOps.readJsonFile<any>(
+            this.getUserFilePath(username, 'profile.json')
+          );
+
           const userStat = StatisticsCalculator.calculateUserStats(
             username,
             playRecords,
             userProfile
           );
-          
+
           userStatsMap.set(username, userStat);
         } catch (error) {
           console.error(`[FileSystem] 计算用户 ${username} 统计失败:`, error);
@@ -736,11 +862,14 @@ export class FileSystemStorage implements IStorage {
       }
 
       // 使用统计计算器计算全站统计
-      const result = StatisticsCalculator.calculatePlayStats(allUsers, userStatsMap);
-      
+      const result = StatisticsCalculator.calculatePlayStats(
+        allUsers,
+        userStatsMap
+      );
+
       // 缓存结果
       await this.cacheManager.set('playstats', 'summary', result, 1800); // 30分钟
-      
+
       return result;
     });
   }
@@ -749,18 +878,20 @@ export class FileSystemStorage implements IStorage {
   async getUserPlayStat(userName: string): Promise<UserPlayStat> {
     return this.getWithCache('userstats', userName, async () => {
       const playRecords = await this.getAllPlayRecords(userName);
-      const userProfile = await this.fileOps.readJsonFile<any>(this.getUserFilePath(userName, 'profile.json'));
-      
+      const userProfile = await this.fileOps.readJsonFile<any>(
+        this.getUserFilePath(userName, 'profile.json')
+      );
+
       // 使用统计计算器计算用户统计
       const result = StatisticsCalculator.calculateUserStats(
         userName,
         playRecords,
         userProfile
       );
-      
+
       // 缓存结果
       await this.cacheManager.set('userstats', userName, result, 1800); // 30分钟
-      
+
       return result;
     });
   }
@@ -777,7 +908,10 @@ export class FileSystemStorage implements IStorage {
       }
 
       // 使用统计计算器计算内容统计
-      return StatisticsCalculator.calculateContentStats(allUsersPlayRecords, limit);
+      return StatisticsCalculator.calculateContentStats(
+        allUsersPlayRecords,
+        limit
+      );
     } catch (error) {
       console.error('获取内容统计失败:', error);
       return [];
@@ -794,7 +928,7 @@ export class FileSystemStorage implements IStorage {
       // 清除相关缓存
       this.cacheManager.clearCategory('playstats');
       this.cacheManager.clearCategory(`userstats_${userName}`);
-      
+
       // 异步更新统计数据
       setImmediate(async () => {
         try {
@@ -818,31 +952,31 @@ export class FileSystemStorage implements IStorage {
     try {
       const profilePath = this.getUserProfilePath(userName);
       let profile = await this.fileOps.readJsonFile<any>(profilePath);
-      
+
       if (!profile) {
         profile = {
           username: userName,
           createdAt: loginTime,
           loginCount: 0,
           firstLoginTime: 0,
-          lastLoginTime: 0
+          lastLoginTime: 0,
         };
       }
 
       // 更新登入统计
       profile.loginCount = (profile.loginCount || 0) + 1;
       profile.lastLoginTime = loginTime;
-      
+
       if (isFirstLogin || !profile.firstLoginTime) {
         profile.firstLoginTime = loginTime;
       }
 
       await this.fileOps.writeJsonFile(profilePath, profile);
-      
+
       console.log(`[FileSystem] 用户 ${userName} 登入统计已更新:`, {
         loginCount: profile.loginCount,
         firstLoginTime: profile.firstLoginTime,
-        lastLoginTime: profile.lastLoginTime
+        lastLoginTime: profile.lastLoginTime,
       });
     } catch (error) {
       console.error(`更新用户 ${userName} 登入统计失败:`, error);
@@ -851,33 +985,33 @@ export class FileSystemStorage implements IStorage {
   }
 
   // ---------- 扩展功能 ----------
-  
+
   // 存储健康检查
   async checkStorageHealth(): Promise<any> {
     try {
       const stats = await this.fileOps.getFileStats(this.dataDir);
-      
+
       if (!stats) {
         return {
           available: false,
           totalSpace: 0,
           usedSpace: 0,
           freeSpace: 0,
-          errors: ['无法获取存储统计']
+          errors: ['无法获取存储统计'],
         };
       }
-      
+
       // 简化的空间计算（实际项目中可能需要更精确的计算）
       const totalSpace = 100 * 1024 * 1024 * 1024; // 假设100GB
       const usedSpace = await this.fileOps.calculateDirectorySize(this.dataDir);
       const freeSpace = totalSpace - usedSpace;
-      
+
       return {
         available: true,
         totalSpace,
         usedSpace,
         freeSpace,
-        errors: []
+        errors: [],
       };
     } catch (error) {
       return {
@@ -885,7 +1019,7 @@ export class FileSystemStorage implements IStorage {
         totalSpace: 0,
         usedSpace: 0,
         freeSpace: 0,
-        errors: [error instanceof Error ? error.message : 'Unknown error']
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
       };
     }
   }
@@ -895,7 +1029,7 @@ export class FileSystemStorage implements IStorage {
     try {
       const userDir = this.fileOps.getAbsolutePath(this.getUserDir(userName));
       const userData: any = {};
-      
+
       // 收集用户所有数据
       const files = [
         'playrecords.json',
@@ -903,9 +1037,9 @@ export class FileSystemStorage implements IStorage {
         'searchhistory.json',
         'skipconfigs.json',
         'episodeskipconfigs.json',
-        'profile.json'
+        'profile.json',
       ];
-      
+
       for (const file of files) {
         const filePath = path.join(userDir, file);
         const data = await this.fileOps.readJsonFile(filePath);
@@ -913,7 +1047,7 @@ export class FileSystemStorage implements IStorage {
           userData[file.replace('.json', '')] = data;
         }
       }
-      
+
       return Buffer.from(JSON.stringify(userData, null, 2));
     } catch (error) {
       console.error(`[FileSystem] 导出用户数据失败: ${userName}`, error);
@@ -927,16 +1061,16 @@ export class FileSystemStorage implements IStorage {
       const userData = JSON.parse(data.toString());
       await this.ensureUserDir(userName);
       const userDir = this.fileOps.getAbsolutePath(this.getUserDir(userName));
-      
+
       // 导入用户数据
       for (const [key, value] of Object.entries(userData)) {
         const filePath = path.join(userDir, `${key}.json`);
         await this.fileOps.writeJsonFile(filePath, value);
       }
-      
+
       // 清除相关缓存
       this.cacheManager.clearCategory(userName);
-      
+
       console.log(`[FileSystem] 用户数据导入成功: ${userName}`);
     } catch (error) {
       console.error(`[FileSystem] 导入用户数据失败: ${userName}`, error);
