@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  lunatv:
+    build: .
+    container_name: lunatv
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      # 数据持久化 - 将容器内的 /app/data 目录映射到主机的 ./data 目录
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - FILE_SYSTEM_DATA_DIR=/app/data
+      - DOCKER_ENV=true
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    name: lunatv-network

@@ -43,6 +43,10 @@ ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 ENV DOCKER_ENV=true
+ENV FILE_SYSTEM_DATA_DIR=/app/data
+
+# 创建数据目录并设置权限
+RUN mkdir -p /app/data && chown -R nextjs:nodejs /app/data
 
 # 从构建器中复制 standalone 输出
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
@@ -58,6 +62,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 USER nextjs
 
 EXPOSE 3000
+
+# 声明数据卷
+VOLUME ["/app/data"]
 
 # 使用自定义启动脚本，先预加载配置再启动服务器
 CMD ["node", "start.js"] 
