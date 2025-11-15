@@ -1,18 +1,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any,no-console */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
-import { getAuthInfoFromCookie } from '@/lib/auth';
 import { getAvailableApiSites, getCacheTime, getConfig } from '@/lib/config';
 import { searchFromApi } from '@/lib/downstream';
 import { yellowWords } from '@/lib/yellow';
+import { 
+  validateAuth, 
+  createErrorResponse, 
+  createCachedResponse, 
+  withTimeout 
+} from '@/lib/api-utils';
 
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
-  const authInfo = getAuthInfoFromCookie(request);
-  if (!authInfo || !authInfo.username) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // 验证用户认证
+  const authValidation = validateAuth(request);
+  if (!authValidation.success) {
+    return createErrorResponse(authValidation.error!, authValidation.status);
   }
 
   const { searchParams } = new URL(request.url);
@@ -20,67 +26,33 @@ export async function GET(request: NextRequest) {
 
   if (!query) {
     const cacheTime = await getCacheTime();
-    return NextResponse.json(
-      { results: [] },
-      {
-        headers: {
-          'Cache-Control': `public, max-age=${cacheTime}, s-maxage=${cacheTime}`,
-          'CDN-Cache-Control': `public, s-maxage=${cacheTime}`,
-          'Vercel-CDN-Cache-Control': `public, s-maxage=${cacheTime}`,
-          'Netlify-Vary': 'query',
-        },
-      }
-    );
+    return createCachedResponse({ results: [] }, cacheTime);
   }
 
-  const config = await getConfig();
-  const apiSites = await getAvailableApiSites(authInfo.username);
-
-  // 添加超时控制和错误处理，避免慢接口拖累整体响应
-  // 移除数字变体后，统一使用智能搜索变体
-  const searchPromises = apiSites.map((site) =>
-    Promise.race([
-      searchFromApi(site, query),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(`${site.name} timeout`)), 20000)
-      ),
-    ]).catch((err) => {
-      console.warn(`搜索失败 ${site.name}:`, err.message);
-      return []; // 返回空数组而不是抛出错误
-    })
-  );
-
   try {
-    const results = await Promise.allSettled(searchPromises);
-    const successResults = results
-      .filter((result) => result.status === 'fulfilled')
-      .map((result) => (result as PromiseFulfilledResult<any>).value);
-    let flattenedResults = successResults.flat();
-    if (!config.SiteConfig.DisableYellowFilter) {
-      flattenedResults = flattenedResults.filter((result) => {
-        const typeName = result.type_name || '';
-        return !yellowWords.some((word: string) => typeName.includes(word));
-      });
-    }
-    const cacheTime = await getCacheTime();
+    const config = await getConfig();
+    const apiSites = await getAvailableApiSites(authValidation.authInfo!.username);
 
-    if (flattenedResults.length === 0) {
-      // no cache if empty
-      return NextResponse.json({ results: [] }, { status: 200 });
-    }
-
-    return NextResponse.json(
-      { results: flattenedResults },
-      {
-        headers: {
-          'Cache-Control': `public, max-age=${cacheTime}, s-maxage=${cacheTime}`,
-          'CDN-Cache-Control': `public, s-maxage=${cacheTime}`,
-          'Vercel-CDN-Cache-Control': `public, s-maxage=${cacheTime}`,
-          'Netlify-Vary': 'query',
-        },
-      }
+    // 并发搜索所有API站点，带超时控制
+    const searchPromises = apiSites.map((site) =>
+      withTimeout(searchFromApi(site, query), 20000).catch((err) => {
+        console.warn(`搜索失败 ${site.name}:`, err.message);
+        return []; // 返回空数组而不是抛出错误
+      })
     );
+
+    const allResults = await Promise.all(searchPromises);
+    const flattenedResults = allResults.flat();
+
+    // 黄词过滤
+    const filteredResults = config.DisableYellowFilter
+      ? flattenedResults
+      : flattenedResults.filter((item) => !yellowWords.some((word) => item.title.includes(word)));
+
+    const cacheTime = await getCacheTime();
+    return createCachedResponse({ results: filteredResults }, cacheTime);
   } catch (error) {
-    return NextResponse.json({ error: '搜索失败' }, { status: 500 });
+    console.error('搜索错误:', error);
+    return createErrorResponse('搜索失败');
   }
 }

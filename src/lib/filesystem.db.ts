@@ -4,9 +4,6 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 import { AdminConfig } from './admin.types';
-import { CacheManager } from './filesystem/cache-manager';
-import { FileOperations } from './filesystem/file-operations';
-import { StatisticsCalculator } from './filesystem/statistics-calculator';
 import {
   ContentStat,
   EpisodeSkipConfig,
@@ -16,6 +13,10 @@ import {
   PlayStatsResult,
   UserPlayStat,
 } from './types';
+import { CacheManager } from './filesystem/cache-manager';
+import { FileOperations } from './filesystem/file-operations';
+import { StatisticsCalculator } from './filesystem/statistics-calculator';
+import { AdminConfigManager } from './filesystem/admin-config-manager';
 
 // 搜索历史最大条数
 const SEARCH_HISTORY_LIMIT = 20;
@@ -29,14 +30,14 @@ export class FileSystemStorage implements IStorage {
   private fileOps: FileOperations;
   private cacheManager: CacheManager;
   private dataDir: string;
+  private adminConfigManager: AdminConfigManager;
 
   constructor() {
-    this.dataDir =
-      process.env.FILE_SYSTEM_DATA_DIR || path.join(process.cwd(), 'data');
-
+    this.dataDir = process.env.FILE_SYSTEM_DATA_DIR || path.join(process.cwd(), 'data');
+    
     // 初始化文件操作工具
     this.fileOps = new FileOperations(this.dataDir);
-
+    
     // 初始化缓存管理器
     this.cacheManager = new CacheManager(this.fileOps, {
       maxSize: 1000,
@@ -44,7 +45,13 @@ export class FileSystemStorage implements IStorage {
       cleanupInterval: 60 * 1000, // 1分钟
       enableMemoryCache: true,
     });
-
+    
+    // 初始化Admin配置管理器
+    this.adminConfigManager = new AdminConfigManager(
+      this.fileOps, 
+      this.getConfigFilePath('admin.json')
+    );
+    
     // 初始化目录结构
     this.initDirectories().catch(console.error);
   }
@@ -387,230 +394,25 @@ export class FileSystemStorage implements IStorage {
   }
 
   async getAdminConfig(): Promise<AdminConfig | null> {
-    const filePath = this.adminConfigPath();
-    const rawConfig = await this.fileOps.readJsonFile<AdminConfig>(filePath);
-
-    if (!rawConfig) return null;
-
-    // 创建返回给调用者的配置对象
-    const config: AdminConfig = { ...rawConfig };
-
-    // 处理源配置文件引用 - 从独立文件加载源配置
-    if ((rawConfig as any)._sourceConfigFile) {
-      try {
-        const sourceConfigPath = path.isAbsolute(
-          (rawConfig as any)._sourceConfigFile
-        )
-          ? (rawConfig as any)._sourceConfigFile
-          : path.join(
-              path.dirname(filePath),
-              (rawConfig as any)._sourceConfigFile
-            );
-
-        const sources = await this.fileOps.readJsonFile<any[]>(
-          sourceConfigPath
-        );
-        config.SourceConfig = sources || [];
-      } catch (error) {
-        console.error('加载源配置文件失败:', error);
-        config.SourceConfig = [];
-      }
-    } else {
-      // 如果没有源配置文件引用，确保SourceConfig是空数组
-      config.SourceConfig = config.SourceConfig || [];
-    }
-
-    // 确保ConfigFile字段存在（为了兼容接口使用者）
-    if (!config.ConfigFile) {
-      config.ConfigFile = '';
-    }
-
-    return config;
+    return await this.adminConfigManager.loadAdminConfig();
   }
 
   async setAdminConfig(config: AdminConfig): Promise<void> {
-    const filePath = this.adminConfigPath();
-    const existingConfig = await this.fileOps
-      .readJsonFile<AdminConfig>(filePath)
-      .catch(() => null);
-
-    // 准备要保存到文件的配置对象（清理冗余字段）
-    const configToSave: any = { ...config };
-
-    // 删除ConfigFile和SourceConfig字段，确保admin.json文件清晰
-    delete configToSave.ConfigFile;
-    delete configToSave.SourceConfig;
-
-    try {
-      // 处理源配置保存
-      if (config.ConfigFile && config.ConfigFile.trim() !== '') {
-        // 如果ConfigFile不为空，说明是从config_file API传入的配置内容
-        const configData = JSON.parse(config.ConfigFile);
-        const sourceSources =
-          this.extractSourceConfigFromConfigData(configData);
-
-        // 创建源配置文件路径
-        const sourceConfigFileName = 'source.json';
-        const sourceConfigPath = this.getConfigFilePath(sourceConfigFileName);
-
-        // 保存源配置到单独的文件
-        await this.fileOps.writeJsonFile(sourceConfigPath, sourceSources);
-        console.log(`源配置已保存到文件: ${sourceConfigPath}`);
-
-        // 添加源配置文件引用
-        configToSave._sourceConfigFile = sourceConfigFileName;
-      } else if (config.SourceConfig && config.SourceConfig.length > 0) {
-        // 如果SourceConfig有内容，保存到独立文件
-        const sourceConfigFileName = 'source.json';
-        const sourceConfigPath = this.getConfigFilePath(sourceConfigFileName);
-
-        await this.fileOps.writeJsonFile(sourceConfigPath, config.SourceConfig);
-        console.log(`源配置已更新到文件: ${sourceConfigPath}`);
-
-        // 添加源配置文件引用
-        configToSave._sourceConfigFile = sourceConfigFileName;
-      } else if (existingConfig && (existingConfig as any)._sourceConfigFile) {
-        // 如果配置为空但之前有源配置文件，保持引用不变
-        configToSave._sourceConfigFile = (
-          existingConfig as any
-        )._sourceConfigFile;
-
-        // 清空源配置文件内容
-        const sourceConfigPath = path.isAbsolute(
-          (existingConfig as any)._sourceConfigFile
-        )
-          ? (existingConfig as any)._sourceConfigFile
-          : path.join(
-              path.dirname(filePath),
-              (existingConfig as any)._sourceConfigFile
-            );
-
-        await this.fileOps.writeJsonFile(sourceConfigPath, []);
-        console.log(`源配置文件已清空: ${sourceConfigPath}`);
-      }
-
-      // 保存清理后的admin配置
-      await this.fileOps.writeJsonFile(filePath, configToSave);
-      console.log(`管理员配置已保存，已清理冗余字段`);
-    } catch (error) {
-      console.error('保存配置失败:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * 从配置数据中提取源配置
-   */
-  private extractSourceConfigFromConfigData(configData: any): any[] {
-    const sourceSources: any[] = [];
-
-    // 从 api_site 中提取源配置
-    if (configData.api_site) {
-      Object.entries(configData.api_site).forEach(
-        ([key, site]: [string, any]) => {
-          sourceSources.push({
-            key,
-            name: site.name,
-            api: site.api,
-            detail: site.detail || '',
-            from: 'config',
-            disabled: false,
-          });
-        }
-      );
-    }
-
-    return sourceSources;
+    await this.adminConfigManager.saveAdminConfig(config);
   }
 
   /**
    * 保存订阅配置到源配置文件
    */
-  async saveSubscriptionConfigToSourceFile(
-    configContent: string
-  ): Promise<boolean> {
-    try {
-      const configData = JSON.parse(configContent);
-      const sourceSources = this.extractSourceConfigFromConfigData(configData);
-
-      const filePath = this.adminConfigPath();
-      const existingConfig = await this.fileOps
-        .readJsonFile<AdminConfig>(filePath)
-        .catch(() => null);
-
-      if (existingConfig && (existingConfig as any)._sourceConfigFile) {
-        const sourceConfigPath = path.isAbsolute(
-          (existingConfig as any)._sourceConfigFile
-        )
-          ? (existingConfig as any)._sourceConfigFile
-          : path.join(
-              path.dirname(filePath),
-              (existingConfig as any)._sourceConfigFile
-            );
-
-        await this.fileOps.writeJsonFile(sourceConfigPath, sourceSources);
-        console.log(`订阅配置已保存到源配置文件: ${sourceConfigPath}`);
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      console.error('保存订阅配置到源配置文件失败:', error);
-      return false;
-    }
+  async saveSubscriptionConfigToSourceFile(configContent: string): Promise<boolean> {
+    return await this.adminConfigManager.saveSubscriptionConfig(configContent);
   }
 
   /**
    * 从源配置文件中删除指定的源
    */
   async removeSourcesFromSourceFile(keys: string[]): Promise<boolean> {
-    try {
-      const filePath = this.adminConfigPath();
-      const existingConfig = await this.fileOps
-        .readJsonFile<AdminConfig>(filePath)
-        .catch(() => null);
-
-      if (!existingConfig || !(existingConfig as any)._sourceConfigFile) {
-        return false;
-      }
-
-      const sourceConfigPath = path.isAbsolute(
-        (existingConfig as any)._sourceConfigFile
-      )
-        ? (existingConfig as any)._sourceConfigFile
-        : path.join(
-            path.dirname(filePath),
-            (existingConfig as any)._sourceConfigFile
-          );
-
-      const sources = await this.fileOps
-        .readJsonFile<any[]>(sourceConfigPath)
-        .catch(() => []);
-      const initialLength = sources?.length || 0;
-
-      // 删除指定的源
-      if (sources) {
-        for (const key of keys) {
-          const sourceIndex = sources.findIndex((s: any) => s.key === key);
-          if (sourceIndex !== -1) {
-            sources.splice(sourceIndex, 1);
-          }
-        }
-
-        if (sources.length < initialLength) {
-          await this.fileOps.writeJsonFile(sourceConfigPath, sources);
-          console.log(
-            `已从源配置文件删除 ${initialLength - sources.length} 个源`
-          );
-          return true;
-        }
-      }
-
-      return false;
-    } catch (error) {
-      console.error('从源配置文件删除源失败:', error);
-      return false;
-    }
+    return await this.adminConfigManager.removeSources(keys);
   }
 
   // ---------- 跳过片头片尾配置 ----------
