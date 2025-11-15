@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "es5",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -15,8 +19,36 @@
     "jsx": "preserve",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "~/*": ["./public/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@frontend/*": [
+        "./src/frontend/*"
+      ],
+      "@backend/*": [
+        "./src/backend/*"
+      ],
+      "@shared/*": [
+        "./src/shared/*"
+      ],
+      "@components/*": [
+        "./src/frontend/components/*"
+      ],
+      "@hooks/*": [
+        "./src/frontend/hooks/*"
+      ],
+      "@services/*": [
+        "./src/backend/services/*"
+      ],
+      "@api/*": [
+        "./src/backend/api/*"
+      ],
+      "@utils/*": [
+        "./src/backend/utils/*"
+      ],
+      "~/*": [
+        "./public/*"
+      ]
     },
     "incremental": true,
     "plugins": [
@@ -25,7 +57,18 @@
       }
     ]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"],
-  "moduleResolution": ["node_modules", ".next", "node"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ],
+  "moduleResolution": [
+    "node_modules",
+    ".next",
+    "node"
+  ]
 }

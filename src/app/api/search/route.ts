@@ -45,7 +45,8 @@ export async function GET(request: NextRequest) {
     const flattenedResults = allResults.flat();
 
     // 黄词过滤
-    const filteredResults = config.DisableYellowFilter
+    const disableYellowFilter = config.SiteConfig?.DisableYellowFilter || process.env.NEXT_PUBLIC_DISABLE_YELLOW_FILTER === 'true';
+    const filteredResults = disableYellowFilter
       ? flattenedResults
       : flattenedResults.filter((item) => !yellowWords.some((word) => item.title.includes(word)));
 
