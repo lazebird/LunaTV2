@@ -40,8 +40,8 @@ import {
 } from '@/lib/db.client';
 import type { Favorite } from '@/lib/types';
 
-import { VersionPanel } from './VersionPanel';
-import VideoCard from './VideoCard';
+import { VersionPanel } from '@/components/VersionPanel';
+import VideoCard from '@/components/VideoCard';
 
 interface AuthInfo {
   username?: string;

@@ -1,47 +1,53 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
-interface RequestOptions<T> {
+export interface ApiRequestOptions<T> {
   onSuccess?: (data: T) => void;
   onError?: (error: Error) => void;
-  showLoading?: boolean;
+  onFinally?: () => void;
+}
+
+export interface ApiRequestState {
+  loading: boolean;
+  error: Error | null;
 }
 
 export function useApiRequest<T = any>() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [data, setData] = useState<T | null>(null);
+  const [state, setState] = useState<ApiRequestState>({
+    loading: false,
+    error: null,
+  });
 
-  const request = async (
-    fn: () => Promise<T>,
-    options?: RequestOptions<T>
-  ): Promise<T> => {
-    if (options?.showLoading !== false) {
-      setLoading(true);
-    }
-    setError(null);
+  const execute = useCallback(
+    async (
+      apiCall: () => Promise<T>,
+      options?: ApiRequestOptions<T>
+    ): Promise<T | null> => {
+      setState({ loading: true, error: null });
 
-    try {
-      const result = await fn();
-      setData(result);
-      options?.onSuccess?.(result);
-      return result;
-    } catch (err) {
-      const error = err as Error;
-      setError(error);
-      options?.onError?.(error);
-      throw error;
-    } finally {
-      if (options?.showLoading !== false) {
-        setLoading(false);
+      try {
+        const result = await apiCall();
+        options?.onSuccess?.(result);
+        return result;
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        setState({ loading: false, error });
+        options?.onError?.(error);
+        return null;
+      } finally {
+        setState((prev) => ({ ...prev, loading: false }));
+        options?.onFinally?.();
       }
-    }
-  };
+    },
+    []
+  );
 
-  const reset = () => {
-    setLoading(false);
-    setError(null);
-    setData(null);
-  };
+  const reset = useCallback(() => {
+    setState({ loading: false, error: null });
+  }, []);
 
-  return { request, loading, error, data, reset };
+  return {
+    ...state,
+    execute,
+    reset,
+  };
 }

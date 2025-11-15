@@ -13,10 +13,10 @@ import {
   PlayStatsResult,
   UserPlayStat,
 } from '@/lib/types';
-import { CacheManager } from './filesystem/cache-manager';
-import { FileOperations } from './filesystem/file-operations';
-import { StatisticsCalculator } from './filesystem/statistics-calculator';
-import { AdminConfigManager } from './filesystem/admin-config-manager';
+import { CacheManager } from '@/lib/filesystem/cache-manager';
+import { FileOperations } from '@/lib/filesystem/file-operations';
+import { StatisticsCalculator } from '@/lib/filesystem/statistics-calculator';
+import { AdminConfigManager } from '@/lib/filesystem/admin-config-manager';
 
 // 搜索历史最大条数
 const SEARCH_HISTORY_LIMIT = 20;
