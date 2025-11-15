@@ -388,40 +388,52 @@ export class FileSystemStorage implements IStorage {
     
     // 检查是否需要保存源配置到文件
     const existingConfig = await this.fileOps.readJsonFile<AdminConfig>(filePath).catch(() => null);
-    if (existingConfig && (existingConfig as any)._sourceConfigFile) {
-      // 如果ConfigFile不为空，说明是从config_file API传入的配置内容
-      if (config.ConfigFile && config.ConfigFile.trim() !== '') {
-        try {
-          const configData = JSON.parse(config.ConfigFile);
-          const sourceSources = this.extractSourceConfigFromConfigData(configData);
-          
-          // 保存源配置到单独的文件
-          const sourceConfigPath = path.isAbsolute((existingConfig as any)._sourceConfigFile)
-            ? (existingConfig as any)._sourceConfigFile
-            : path.join(path.dirname(filePath), (existingConfig as any)._sourceConfigFile);
-          
-          await this.fileOps.writeJsonFile(sourceConfigPath, sourceSources);
-          console.log(`源配置已保存到文件: ${sourceConfigPath}`);
-        } catch (error) {
-          console.error('保存源配置文件失败:', error);
-        }
-      } else {
-        // 保存源配置到单独的文件（即使为空也要保存，表示删除所有源）
-        const sourceConfigPath = path.isAbsolute((existingConfig as any)._sourceConfigFile)
-          ? (existingConfig as any)._sourceConfigFile
-          : path.join(path.dirname(filePath), (existingConfig as any)._sourceConfigFile);
+    
+    // 如果ConfigFile不为空，说明是从config_file API传入的配置内容，需要生成独立的源配置文件
+    if (config.ConfigFile && config.ConfigFile.trim() !== '') {
+      try {
+        const configData = JSON.parse(config.ConfigFile);
+        const sourceSources = this.extractSourceConfigFromConfigData(configData);
         
-        try {
-          await this.fileOps.writeJsonFile(sourceConfigPath, config.SourceConfig || []);
-          console.log(`源配置已保存到文件: ${sourceConfigPath}`);
-        } catch (error) {
-          console.error('保存源配置文件失败:', error);
-        }
+        // 创建源配置文件路径
+        const sourceConfigFileName = 'source_config.json';
+        const sourceConfigPath = this.getConfigFilePath(sourceConfigFileName);
+        
+        // 保存源配置到单独的文件
+        await this.fileOps.writeJsonFile(sourceConfigPath, sourceSources);
+        console.log(`源配置已保存到文件: ${sourceConfigPath}`);
+        
+        // 保存admin配置，添加_sourceConfigFile字段引用，清空ConfigFile字段
+        const configToSave = { 
+          ...config, 
+          SourceConfig: sourceSources || [], // 同时更新SourceConfig数组
+          ConfigFile: '', // 清空ConfigFile字段
+          _sourceConfigFile: sourceConfigFileName // 添加源配置文件引用
+        };
+        await this.fileOps.writeJsonFile(filePath, configToSave);
+      } catch (error) {
+        console.error('保存源配置文件失败:', error);
+        // 如果保存失败，回退到原始方式
+        await this.fileOps.writeJsonFile(filePath, config);
       }
+    } else if (existingConfig && (existingConfig as any)._sourceConfigFile) {
+      // 如果已有源配置文件引用，但ConfigFile为空，则更新源配置文件
+      const sourceConfigPath = path.isAbsolute((existingConfig as any)._sourceConfigFile)
+        ? (existingConfig as any)._sourceConfigFile
+        : path.join(path.dirname(filePath), (existingConfig as any)._sourceConfigFile);
       
-      // 保留 _sourceConfigFile 字段，但清空 SourceConfig 数组和ConfigFile字段
-      const configToSave = { ...config, SourceConfig: [], ConfigFile: '' };
-      await this.fileOps.writeJsonFile(filePath, configToSave);
+      try {
+        await this.fileOps.writeJsonFile(sourceConfigPath, config.SourceConfig || []);
+        console.log(`源配置已更新到文件: ${sourceConfigPath}`);
+        
+        // 保留 _sourceConfigFile 字段，但清空 ConfigFile字段
+        const configToSave = { ...config, ConfigFile: '' };
+        await this.fileOps.writeJsonFile(filePath, configToSave);
+      } catch (error) {
+        console.error('更新源配置文件失败:', error);
+        // 如果更新失败，回退到原始方式
+        await this.fileOps.writeJsonFile(filePath, config);
+      }
     } else {
       // 正常保存整个配置
       await this.fileOps.writeJsonFile(filePath, config);
