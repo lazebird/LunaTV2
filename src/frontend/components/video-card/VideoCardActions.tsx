@@ -47,10 +47,10 @@ export function VideoCardActions({
 
     try {
       if (from === 'favorite') {
-        const { deleteFavorite } = await import('@/lib/db.client');
+        const { deleteFavorite } = require('@/frontend/lib/db.client');
         await deleteFavorite(source, id);
       } else if (from === 'playrecord') {
-        const { deletePlayRecord } = await import('@/lib/db.client');
+        const { deletePlayRecord } = await import('@/frontend/lib/db.client');
         await deletePlayRecord(source, id);
       }
       

@@ -182,7 +182,7 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
     if (!source || !id) return;
 
     try {
-      const { savePlayRecord } = await import('@/lib/db.client');
+      const { savePlayRecord } = require('@/frontend/lib/db.client');
       await savePlayRecord(source, id, {
         title,
         cover: poster,
@@ -272,10 +272,10 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
                 } else if (id && source) {
                   try {
                     if (from === 'favorite') {
-                      const { deleteFavorite } = await import('@/lib/db.client');
+                      const { deleteFavorite } = await import('@/frontend/lib/db.client');
                       await deleteFavorite(source, id);
                     } else if (from === 'playrecord') {
-                      const { deletePlayRecord } = await import('@/lib/db.client');
+                      const { deletePlayRecord } = await import('@/frontend/lib/db.client');
                       await deletePlayRecord(source, id);
                     }
                     setShowMobileActions(false);

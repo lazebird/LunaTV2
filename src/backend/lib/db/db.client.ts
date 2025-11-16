@@ -136,7 +136,7 @@ export async function saveSearchHistory(
   resultCount?: number
 ) {
   const { addSearchHistory } = await import('./search-history');
-  return addSearchHistory(query, type, resultCount);
+  return addSearchHistory(query, type as any, resultCount);
 }
 
 // 保存用户统计
