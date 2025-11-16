@@ -407,7 +407,7 @@ function SearchPageClient() {
     !searchParams.get('q') && document.getElementById('searchInput')?.focus();
 
     // 初始加载搜索历史
-    getSearchHistory().then(setSearchHistory);
+    getSearchHistory().then(history => setSearchHistory(history.map(item => item.query)));
 
     // 检查URL参数并处理初始搜索
     const initialQuery = searchParams.get('q');

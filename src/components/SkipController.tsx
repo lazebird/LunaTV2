@@ -296,7 +296,7 @@ export default function SkipController({
   // 加载跳过配置
   const loadSkipConfig = useCallback(async () => {
     try {
-      const config = await getSkipConfig(source, id);
+      const config = await getSkipConfig(`${source}_${id}`);
       setSkipConfig(config);
     } catch (err) {
       console.error('❌ 加载跳过配置失败:', err);
@@ -559,7 +559,7 @@ export default function SkipController({
         updated_time: Date.now(),
       };
 
-      await saveSkipConfig(source, id, updatedConfig);
+      await saveSkipConfig(`${source}_${id}`, updatedConfig);
       setSkipConfig(updatedConfig);
       onSettingModeChange?.(false);
       setNewSegment({});
@@ -652,7 +652,7 @@ export default function SkipController({
         updated_time: Date.now(),
       };
 
-      await saveSkipConfig(source, id, updatedConfig);
+      await saveSkipConfig(`${source}_${id}`, updatedConfig);
       setSkipConfig(updatedConfig);
       // batchSettings 会通过 useEffect 自动从 skipConfig 同步，不需要手动重置
       onSettingModeChange?.(false);
@@ -674,7 +674,7 @@ export default function SkipController({
 
         if (updatedSegments.length === 0) {
           // 如果没有片段了，删除整个配置
-          await deleteSkipConfig(source, id);
+          await deleteSkipConfig(`${source}_${id}`);
           setSkipConfig(null);
         } else {
           // 更新配置
@@ -683,7 +683,7 @@ export default function SkipController({
             segments: updatedSegments,
             updated_time: Date.now(),
           };
-          await saveSkipConfig(source, id, updatedConfig);
+          await saveSkipConfig(`${source}_${id}`, updatedConfig);
           setSkipConfig(updatedConfig);
         }
 

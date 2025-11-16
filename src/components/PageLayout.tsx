@@ -5,7 +5,7 @@ import ModernNav from './ModernNav';
 import Sidebar from './Sidebar';
 import { useSite } from './SiteProvider';
 import { ThemeToggle } from './ThemeToggle';
-import { UserMenu } from './UserMenu';
+import UserMenu from './user-menu/UserMenu';
 
 interface PageLayoutProps {
   children: React.ReactNode;

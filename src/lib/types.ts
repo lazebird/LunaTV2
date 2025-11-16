@@ -222,6 +222,7 @@ export interface EpisodeSkipConfig {
   id: string; // 剧集ID
   title: string; // 剧集标题
   segments: SkipSegment[]; // 跳过片段列表
+  enabled?: boolean; // 是否启用跳过配置
   updated_time: number; // 最后更新时间
 }
 

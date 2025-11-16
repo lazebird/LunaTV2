@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 
 import { NextRequest } from 'next/server';
-import { getAuthInfoFromCookie } from '@/lib/auth';
+import { getAuthInfoFromCookie } from './auth';
 
 /**
  * API通用工具函数
@@ -64,76 +64,217 @@ export function createCachedResponse<T>(data: T, cacheTime: number) {
 }
 
 /**
- * 验证请求参数
+ * 解析请求体
  */
-export function validateRequiredParams(params: Record<string, string | null>, required: string[]) {
-  const missing = required.filter(key => !params[key] || params[key]!.trim() === '');
-  
-  if (missing.length > 0) {
-    return {
-      success: false,
-      error: `Missing required parameters: ${missing.join(', ')}`
-    };
+export async function parseRequestBody<T = any>(request: NextRequest): Promise<T> {
+  try {
+    return await request.json();
+  } catch (error) {
+    throw new Error('Invalid JSON in request body');
   }
-  
-  return { success: true };
 }
 
 /**
- * 处理API错误的通用函数
+ * 验证必需的参数
  */
-export function handleApiError(error: any, context: string) {
-  console.error(`[${context}] Error:`, error);
+export function validateRequiredParams(params: Record<string, any>, required: string[]): string[] {
+  const missing: string[] = [];
   
-  if (error.name === 'ValidationError') {
-    return createErrorResponse(error.message, 400);
+  for (const param of required) {
+    if (!params[param]) {
+      missing.push(param);
+    }
   }
   
-  if (error.name === 'UnauthorizedError') {
-    return createErrorResponse('Unauthorized', 401);
-  }
-  
-  if (error.name === 'NotFoundError') {
-    return createErrorResponse('Resource not found', 404);
-  }
-  
-  return createErrorResponse('Internal server error', 500);
+  return missing;
 }
 
 /**
- * 带超时的Promise包装器
+ * 创建分页响应
+ */
+export function createPaginatedResponse<T>(
+  data: T[],
+  page: number,
+  pageSize: number,
+  total?: number
+) {
+  const totalPages = Math.ceil((total || data.length) / pageSize);
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedData = data.slice(startIndex, endIndex);
+  
+  return {
+    data: paginatedData,
+    pagination: {
+      page,
+      pageSize,
+      total: total || data.length,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrev: page > 1,
+    },
+  };
+}
+
+/**
+ * 重试机制装饰器
+ */
+export function withRetry<T extends any[], R>(
+  fn: (...args: T) => Promise<R>,
+  maxRetries: number = 3,
+  delay: number = 1000
+) {
+  return async (...args: T): Promise<R> => {
+    let lastError: any;
+    
+    for (let i = 0; i <= maxRetries; i++) {
+      try {
+        return await fn(...args);
+      } catch (error) {
+        lastError = error;
+        
+        if (i < maxRetries) {
+          console.warn(`Retry ${i + 1}/${maxRetries} after error:`, error instanceof Error ? error.message : String(error));
+          await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+        }
+      }
+    }
+    
+    throw lastError;
+  };
+}
+
+/**
+ * 缓存装饰器
+ */
+export function withCache<T extends any[], R>(
+  fn: (...args: T) => Promise<R>,
+  cacheTimeMs: number = 5 * 60 * 1000 // 5分钟默认缓存
+) {
+  const cache = new Map<string, { data: R; timestamp: number }>();
+  
+  return async (...args: T): Promise<R> => {
+    const key = JSON.stringify(args);
+    const cached = cache.get(key);
+    
+    if (cached && Date.now() - cached.timestamp < cacheTimeMs) {
+      return cached.data;
+    }
+    
+    const data = await fn(...args);
+    cache.set(key, { data, timestamp: Date.now() });
+    
+    return data;
+  };
+}
+
+/**
+ * 错误处理装饰器
+ */
+export function withErrorHandling<T extends any[], R>(
+  fn: (...args: T) => Promise<R>,
+  errorHandler?: (error: any) => Response | void
+) {
+  return async (...args: T): Promise<Response> => {
+    try {
+      const result = await fn(...args);
+      if (result instanceof Response) {
+        return result;
+      }
+      return createSuccessResponse(result);
+    } catch (error) {
+      console.error('API Error:', error);
+      
+      if (errorHandler) {
+        const handled = errorHandler(error);
+        if (handled) return handled;
+      }
+      
+      const message = error instanceof Error ? error.message : 'Internal server error';
+      const status = (error as any).status || 500;
+      
+      return createErrorResponse(message, status);
+    }
+  };
+}
+
+/**
+ * CORS 预检处理
+ */
+export function handleCors(request: NextRequest) {
+  const origin = request.headers.get('origin');
+  
+  const headers = {
+    'Access-Control-Allow-Origin': origin || '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Max-Age': '86400',
+  };
+  
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { headers });
+  }
+  
+  return headers;
+}
+
+/**
+ * 限制请求频率
+ */
+export class RateLimiter {
+  private requests: Map<string, number[]> = new Map();
+  
+  constructor(
+    private maxRequests: number = 100,
+    private windowMs: number = 60 * 1000 // 1分钟
+  ) {}
+  
+  isAllowed(identifier: string): boolean {
+    const now = Date.now();
+    const windowStart = now - this.windowMs;
+    
+    if (!this.requests.has(identifier)) {
+      this.requests.set(identifier, []);
+    }
+    
+    const timestamps = this.requests.get(identifier)!;
+    
+    // 清理过期的请求记录
+    const validTimestamps = timestamps.filter(time => time > windowStart);
+    this.requests.set(identifier, validTimestamps);
+    
+    // 检查是否超过限制
+    if (validTimestamps.length >= this.maxRequests) {
+      return false;
+    }
+    
+    // 记录当前请求
+    validTimestamps.push(now);
+    return true;
+  }
+}
+
+/**
+ * 处理API错误
+ */
+export function handleApiError(error: unknown, defaultMessage: string = 'Internal Server Error') {
+  console.error('API Error:', error);
+  
+  if (error instanceof Error) {
+    return createErrorResponse(error.message, 500);
+  }
+  
+  return createErrorResponse(defaultMessage, 500);
+}
+
+/**
+ * 为Promise添加超时
  */
 export function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return Promise.race([
     promise,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Operation timeout')), timeoutMs)
-    )
+    new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error(`Operation timed out after ${timeoutMs}ms`)), timeoutMs);
+    })
   ]);
-}
-
-/**
- * 重试函数
- */
-export async function retry<T>(
-  fn: () => Promise<T>,
-  maxRetries: number = 3,
-  delay: number = 1000
-): Promise<T> {
-  let lastError: any;
-  
-  for (let i = 0; i <= maxRetries; i++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error;
-      
-      if (i < maxRetries) {
-        console.warn(`Retry ${i + 1}/${maxRetries} after error:`, error instanceof Error ? error.message : String(error));
-        await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
-      }
-    }
-  }
-  
-  throw lastError;
 }

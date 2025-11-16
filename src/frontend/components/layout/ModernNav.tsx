@@ -8,7 +8,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { UserMenu } from '@/components/UserMenu';
+import UserMenu from '@/components/user-menu/UserMenu';
 import { useSite } from '@/components/SiteProvider';
 
 interface NavItem {
