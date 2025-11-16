@@ -8,7 +8,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import SourceTestModule from '@/components/SourceTestModule';
+import SourceTestModule from '@/frontend/components/SourceTestModule';
 
 export default function SourceTestPage() {
   const router = useRouter();

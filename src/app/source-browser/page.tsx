@@ -6,9 +6,9 @@ import { ExternalLink, Layers, Server, Tv } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { ClientCache } from '@/lib/client-cache';
-import PageLayout from '@/components/PageLayout';
-import type { DoubanItem, SearchResult as GlobalSearchResult } from '@/lib/types';
+import { ClientCache } from '@/frontend/lib/client-cache';
+import PageLayout from '@/frontend/components/PageLayout';
+import type { DoubanItem, SearchResult as GlobalSearchResult } from '@/frontend/lib/types';
 
 type Source = { key: string; name: string; api: string };
 type Category = { type_id: string | number; type_name: string };

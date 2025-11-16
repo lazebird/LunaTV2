@@ -10,24 +10,24 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 import {
   debounce,
-} from '@/lib/channel-search';
+} from '@/frontend/lib/channel-search';
 import {
   isMobile,
   isTablet, 
   isSafari,
   devicePerformance
-} from '@/lib/utils';
+} from '@/frontend/lib/utils';
 import {
   deleteFavorite,
   generateStorageKey,
   isFavorited as checkIsFavorited,
   saveFavorite,
   subscribeToDataUpdates,
-} from '@/lib/db.client';
-import { parseCustomTimeFormat } from '@/lib/time';
+} from '@/frontend/lib/db.client';
+import { parseCustomTimeFormat } from '@/frontend/lib/time';
 
-import EpgScrollableRow from '@/components/EpgScrollableRow';
-import PageLayout from '@/components/PageLayout';
+import EpgScrollableRow from '@/frontend/components/EpgScrollableRow';
+import PageLayout from '@/frontend/components/PageLayout';
 
 // 扩展 HTMLVideoElement 类型以支持 hls 属性
 declare global {

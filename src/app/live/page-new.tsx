@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-import PageLayout from '@/components/PageLayout';
+import PageLayout from '@/frontend/components/PageLayout';
 import { useLivePlayer } from './hooks/useLivePlayer';
 import { useLiveChannels } from './hooks/useLiveChannels';
 import { ChannelList } from './components/ChannelList';

@@ -7,20 +7,20 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { GetBangumiCalendarData } from '@/lib/bangumi.client';
+import { GetBangumiCalendarData } from '@/frontend/lib/bangumi.client';
 import {
   getDoubanCategories,
   getDoubanList,
   getDoubanRecommends,
-} from '@/lib/douban.client';
-import { DoubanItem, DoubanResult } from '@/lib/types';
+} from '@/frontend/lib/douban.client';
+import { DoubanItem, DoubanResult } from '@/frontend/lib/types';
 
-import DoubanCardSkeleton from '@/components/DoubanCardSkeleton';
-import DoubanCustomSelector from '@/components/DoubanCustomSelector';
-import DoubanSelector from '@/components/DoubanSelector';
-import PageLayout from '@/components/PageLayout';
-import VideoCard from '@/components/VideoCard';
-import VirtualDoubanGrid, { VirtualDoubanGridRef } from '@/components/VirtualDoubanGrid';
+import DoubanCardSkeleton from '@/frontend/components/DoubanCardSkeleton';
+import DoubanCustomSelector from '@/frontend/components/DoubanCustomSelector';
+import DoubanSelector from '@/frontend/components/DoubanSelector';
+import PageLayout from '@/frontend/components/PageLayout';
+import VideoCard from '@/frontend/components/VideoCard';
+import VirtualDoubanGrid, { VirtualDoubanGridRef } from '@/frontend/components/VirtualDoubanGrid';
 
 function DoubanPageClient() {
   const searchParams = useSearchParams();

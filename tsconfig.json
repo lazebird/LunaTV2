@@ -30,7 +30,7 @@
         "./src/backend/*"
       ],
       "@shared/*": [
-        "./src/shared/*"
+        "./src/frontend/shared/*"
       ],
       "@components/*": [
         "./src/frontend/components/*"

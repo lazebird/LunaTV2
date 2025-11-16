@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any,no-console,no-case-declarations */
 
-import { ClientCache } from '@/lib/client-cache';
-import { DoubanItem, DoubanResult } from '@/lib/types';
+import { ClientCache } from '@/frontend/lib/client-cache';
+import { DoubanItem, DoubanResult } from '@/frontend/lib/types';
 
 // 豆瓣数据缓存配置（秒）
 const DOUBAN_CACHE_EXPIRE = {

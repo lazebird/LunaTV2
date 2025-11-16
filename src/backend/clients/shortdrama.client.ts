@@ -4,13 +4,13 @@ import {
   ShortDramaCategory,
   ShortDramaItem,
   ShortDramaParseResult,
-} from '@/lib/types';
+} from '@/frontend/lib/types';
 import {
   SHORTDRAMA_CACHE_EXPIRE,
   getCacheKey,
   getCache,
   setCache,
-} from '@/lib/shortdrama-cache';
+} from '@/frontend/lib/shortdrama-cache';
 
 const SHORTDRAMA_API_BASE = 'https://api.r2afosne.dpdns.org';
 

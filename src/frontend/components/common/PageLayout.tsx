@@ -1,11 +1,11 @@
-import { BackButton } from '@/components/BackButton';
-import MobileBottomNav from '@/components/MobileBottomNav';
-import MobileHeader from '@/components/MobileHeader';
-import ModernNav from '@/components/ModernNav';
-import Sidebar from '@/components/Sidebar';
-import { useSite } from '@/components/SiteProvider';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import UserMenu from '@/components/user-menu/UserMenu';
+import { BackButton } from '@/frontend/components/BackButton';
+import MobileBottomNav from '@/frontend/components/MobileBottomNav';
+import MobileHeader from '@/frontend/components/MobileHeader';
+import ModernNav from '@/frontend/components/ModernNav';
+import Sidebar from '@/frontend/components/Sidebar';
+import { useSite } from '@/frontend/components/SiteProvider';
+import { ThemeToggle } from '@/frontend/components/ThemeToggle';
+import UserMenu from '@/frontend/components/user-menu/UserMenu';
 
 interface PageLayoutProps {
   children: React.ReactNode;

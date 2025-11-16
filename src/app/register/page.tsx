@@ -6,11 +6,11 @@ import { AlertCircle, CheckCircle, User, Lock, Sparkles, UserPlus, Shield } from
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 
-import { CURRENT_VERSION } from '@/lib/version';
-import { checkForUpdates, UpdateStatus } from '@/lib/version_check';
+import { CURRENT_VERSION } from '@/frontend/lib/version';
+import { checkForUpdates, UpdateStatus } from '@/frontend/lib/version_check';
 
-import { useSite } from '@/components/SiteProvider';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { useSite } from '@/frontend/components/SiteProvider';
+import { ThemeToggle } from '@/frontend/components/ThemeToggle';
 
 // 版本显示组件
 function VersionDisplay() {

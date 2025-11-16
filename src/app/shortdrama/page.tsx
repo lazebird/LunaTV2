@@ -9,12 +9,12 @@ import {
   getShortDramaCategories,
   getShortDramaList,
   searchShortDramas,
-} from '@/lib/shortdrama.client';
-import { cleanExpiredCache } from '@/lib/shortdrama-cache';
-import { ShortDramaCategory, ShortDramaItem } from '@/lib/types';
+} from '@/frontend/lib/shortdrama.client';
+import { cleanExpiredCache } from '@/frontend/lib/shortdrama-cache';
+import { ShortDramaCategory, ShortDramaItem } from '@/frontend/lib/types';
 
-import PageLayout from '@/components/PageLayout';
-import ShortDramaCard from '@/components/ShortDramaCard';
+import PageLayout from '@/frontend/components/PageLayout';
+import ShortDramaCard from '@/frontend/components/ShortDramaCard';
 
 export default function ShortDramaPage() {
   const [categories, setCategories] = useState<ShortDramaCategory[]>([]);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { api } from '@/shared/utils/apiClient';
+import { api } from '@/frontend/lib/utils/apiClient';
 
 export function useUserManagement(refreshConfig: () => Promise<void>) {
   const [loading, setLoading] = useState(false);

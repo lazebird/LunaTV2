@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { buttonStyles } from '../../shared/styles';
-import { TVBoxTokenCell } from '@/components/TVBoxTokenManager';
+import { TVBoxTokenCell } from '@/frontend/components/TVBoxTokenManager';
 
 interface User {
   username: string;

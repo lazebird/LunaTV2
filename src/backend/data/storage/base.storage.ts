@@ -1,9 +1,9 @@
 /* eslint-disable no-console, @typescript-eslint/no-explicit-any, @typescript-eslint/no-non-null-assertion */
 
-import { AdminConfig } from '@/lib/admin.types';
-import { FileSystemStorage } from '@/lib/filesystem.db';
-import { KvrocksStorage } from '@/lib/kvrocks.db';
-import { RedisStorage } from '@/lib/redis.db';
+import { AdminConfig } from '@/frontend/lib/admin.types';
+import { FileSystemStorage } from '@/frontend/lib/filesystem.db';
+import { KvrocksStorage } from '@/frontend/lib/kvrocks.db';
+import { RedisStorage } from '@/frontend/lib/redis.db';
 import {
   ContentStat,
   EpisodeSkipConfig,
@@ -12,8 +12,8 @@ import {
   PlayRecord,
   PlayStatsResult,
   UserPlayStat,
-} from '@/lib/types';
-import { UpstashRedisStorage } from '@/lib/upstash.db';
+} from '@/frontend/lib/types';
+import { UpstashRedisStorage } from '@/frontend/lib/upstash.db';
 
 // storage type 常量: 'localstorage' | 'redis' | 'upstash' | 'kvrocks' | 'filesystem'，默认 'localstorage'
 const STORAGE_TYPE =

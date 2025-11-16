@@ -14,7 +14,7 @@ import {
   useState,
 } from 'react';
 
-import { useSite } from '@/components/SiteProvider';
+import { useSite } from '@/frontend/components/SiteProvider';
 
 interface SidebarContextType {
   isCollapsed: boolean;

@@ -49,29 +49,29 @@ import {
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { AdminConfig, AdminConfigResult } from '@/lib/admin.types';
-import { getAuthInfoFromBrowserCookie } from '@/lib/auth';
+import { AdminConfig, AdminConfigResult } from '@/frontend/lib/admin.types';
+import { getAuthInfoFromBrowserCookie } from '@/frontend/lib/auth';
 
-import AIRecommendConfig from '@/components/AIRecommendConfig';
-import CacheManager from '@/components/CacheManager';
-import CategoryConfig from '@/components/admin/CategoryConfig';
-import ConfigFileComponent from '@/components/admin/ConfigFileComponent';
-import DataMigration from '@/components/DataMigration';
-import ImportExportModal from '@/components/ImportExportModal';
-import LiveSourceConfig from '@/components/admin/LiveSourceConfig';
-import NetDiskConfig from '@/components/admin/NetDiskConfig';
-import PageLayout from '@/components/PageLayout';
-import SiteConfigComponent from '@/components/admin/SiteConfigComponent';
-import SourceTestModule from '@/components/SourceTestModule';
-import { TelegramAuthConfig } from '@/components/TelegramAuthConfig';
-import TVBoxSecurityConfig from '@/components/TVBoxSecurityConfig';
+import AIRecommendConfig from '@/frontend/components/AIRecommendConfig';
+import CacheManager from '@/frontend/components/CacheManager';
+import CategoryConfig from '@/frontend/components/admin/CategoryConfig';
+import ConfigFileComponent from '@/frontend/components/admin/ConfigFileComponent';
+import DataMigration from '@/frontend/components/DataMigration';
+import ImportExportModal from '@/frontend/components/ImportExportModal';
+import LiveSourceConfig from '@/frontend/components/admin/LiveSourceConfig';
+import NetDiskConfig from '@/frontend/components/admin/NetDiskConfig';
+import PageLayout from '@/frontend/components/PageLayout';
+import SiteConfigComponent from '@/frontend/components/admin/SiteConfigComponent';
+import SourceTestModule from '@/frontend/components/SourceTestModule';
+import { TelegramAuthConfig } from '@/frontend/components/TelegramAuthConfig';
+import TVBoxSecurityConfig from '@/frontend/components/TVBoxSecurityConfig';
 import {
   TVBoxTokenCell,
   TVBoxTokenModal,
-} from '@/components/TVBoxTokenManager';
-import UserConfig from '@/components/admin/UserConfig';
-import VideoSourceConfig from '@/components/admin/VideoSourceConfig';
-import YouTubeConfig from '@/components/YouTubeConfig';
+} from '@/frontend/components/TVBoxTokenManager';
+import UserConfig from '@/frontend/components/admin/UserConfig';
+import VideoSourceConfig from '@/frontend/components/admin/VideoSourceConfig';
+import YouTubeConfig from '@/frontend/components/YouTubeConfig';
 
 // 统一按钮样式系统
 const buttonStyles = {

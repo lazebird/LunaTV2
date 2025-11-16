@@ -9,33 +9,33 @@ import { Suspense, useEffect, useState } from 'react';
 import {
   BangumiCalendarData,
   GetBangumiCalendarData,
-} from '@/lib/bangumi.client';
-import { getRecommendedShortDramas } from '@/lib/shortdrama.client';
-import { cleanExpiredCache } from '@/lib/shortdrama-cache';
-import { ShortDramaItem, ReleaseCalendarItem } from '@/lib/types';
+} from '@/frontend/lib/bangumi.client';
+import { getRecommendedShortDramas } from '@/frontend/lib/shortdrama.client';
+import { cleanExpiredCache } from '@/frontend/lib/shortdrama-cache';
+import { ShortDramaItem, ReleaseCalendarItem } from '@/frontend/lib/types';
 // 客户端收藏 API
 import {
   clearAllFavorites,
   getAllFavorites,
   getAllPlayRecords,
   subscribeToDataUpdates,
-} from '@/lib/db.client';
-import { getDoubanCategories, getDoubanDetails } from '@/lib/douban.client';
-import { DoubanItem } from '@/lib/types';
-import { getAuthInfoFromBrowserCookie } from '@/lib/auth';
+} from '@/frontend/lib/db.client';
+import { getDoubanCategories, getDoubanDetails } from '@/frontend/lib/douban.client';
+import { DoubanItem } from '@/frontend/lib/types';
+import { getAuthInfoFromBrowserCookie } from '@/frontend/lib/auth';
 
-import AIRecommendModal from '@/components/AIRecommendModal';
-import CapsuleSwitch from '@/components/CapsuleSwitch';
-import ContinueWatching from '@/components/ContinueWatching';
-import HeroBanner from '@/components/HeroBanner';
-import PageLayout from '@/components/PageLayout';
-import ScrollableRow from '@/components/ScrollableRow';
-import SectionTitle from '@/components/SectionTitle';
-import ShortDramaCard from '@/components/ShortDramaCard';
-import SkeletonCard from '@/components/SkeletonCard';
-import { useSite } from '@/components/SiteProvider';
-import { TelegramWelcomeModal } from '@/components/TelegramWelcomeModal';
-import VideoCard from '@/components/VideoCard';
+import AIRecommendModal from '@/frontend/components/AIRecommendModal';
+import CapsuleSwitch from '@/frontend/components/CapsuleSwitch';
+import ContinueWatching from '@/frontend/components/ContinueWatching';
+import HeroBanner from '@/frontend/components/HeroBanner';
+import PageLayout from '@/frontend/components/PageLayout';
+import ScrollableRow from '@/frontend/components/ScrollableRow';
+import SectionTitle from '@/frontend/components/SectionTitle';
+import ShortDramaCard from '@/frontend/components/ShortDramaCard';
+import SkeletonCard from '@/frontend/components/SkeletonCard';
+import { useSite } from '@/frontend/components/SiteProvider';
+import { TelegramWelcomeModal } from '@/frontend/components/TelegramWelcomeModal';
+import VideoCard from '@/frontend/components/VideoCard';
 
 function HomeClient() {
   const [activeTab, setActiveTab] = useState<'home' | 'favorites'>('home');

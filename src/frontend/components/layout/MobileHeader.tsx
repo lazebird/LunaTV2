@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 
-import { BackButton } from '@/components/BackButton';
-import { useSite } from '@/components/SiteProvider';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import UserMenu from '@/components/user-menu/UserMenu';
+import { BackButton } from '@/frontend/components/BackButton';
+import { useSite } from '@/frontend/components/SiteProvider';
+import { ThemeToggle } from '@/frontend/components/ThemeToggle';
+import UserMenu from '@/frontend/components/user-menu/UserMenu';
 
 interface MobileHeaderProps {
   showBackButton?: boolean;

@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Calendar, Filter, Search, Clock, Film, Tv, MapPin, Tag, ChevronUp } from 'lucide-react';
 
-import { ReleaseCalendarItem, ReleaseCalendarResult } from '@/lib/types';
-import PageLayout from '@/components/PageLayout';
+import { ReleaseCalendarItem, ReleaseCalendarResult } from '@/frontend/lib/types';
+import PageLayout from '@/frontend/components/PageLayout';
 
 export default function ReleaseCalendarPage() {
   const [data, setData] = useState<ReleaseCalendarResult | null>(null);

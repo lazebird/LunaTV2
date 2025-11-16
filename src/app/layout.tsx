@@ -5,12 +5,12 @@ import { Inter } from 'next/font/google';
 
 import './globals.css';
 
-import { getConfig } from '@/lib/config';
+import { getConfig } from '@/frontend/lib/config';
 
-import { GlobalErrorIndicator } from '../components/GlobalErrorIndicator';
-import { SessionTracker } from '../components/SessionTracker';
-import { SiteProvider } from '../components/SiteProvider';
-import { ThemeProvider } from '../components/ThemeProvider';
+import { GlobalErrorIndicator } from '@/frontend/components/GlobalErrorIndicator';
+import { SessionTracker } from '@/frontend/components/SessionTracker';
+import { SiteProvider } from '@/frontend/components/SiteProvider';
+import { ThemeProvider } from '@/frontend/components/ThemeProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 export const dynamic = 'force-dynamic';

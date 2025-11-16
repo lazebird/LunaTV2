@@ -11,18 +11,18 @@ import {
   deleteSearchHistory,
   getSearchHistory,
   subscribeToDataUpdates,
-} from '@/lib/db.client';
-import { SearchResult } from '@/lib/types';
+} from '@/frontend/lib/db.client';
+import { SearchResult } from '@/frontend/lib/types';
 
-import PageLayout from '@/components/PageLayout';
-import SearchResultFilter, { SearchFilterCategory } from '@/components/SearchResultFilter';
-import SearchSuggestions from '@/components/SearchSuggestions';
-import VideoCard, { VideoCardHandle } from '@/components/VideoCard';
-import VirtualSearchGrid, { VirtualSearchGridRef } from '@/components/VirtualSearchGrid';
-import NetDiskSearchResults from '@/components/NetDiskSearchResults';
-import YouTubeVideoCard from '@/components/YouTubeVideoCard';
-import DirectYouTubePlayer from '@/components/DirectYouTubePlayer';
-import TMDBFilterPanel, { TMDBFilterState } from '@/components/TMDBFilterPanel';
+import PageLayout from '@/frontend/components/PageLayout';
+import SearchResultFilter, { SearchFilterCategory } from '@/frontend/components/SearchResultFilter';
+import SearchSuggestions from '@/frontend/components/SearchSuggestions';
+import VideoCard, { VideoCardHandle } from '@/frontend/components/VideoCard';
+import VirtualSearchGrid, { VirtualSearchGridRef } from '@/frontend/components/VirtualSearchGrid';
+import NetDiskSearchResults from '@/frontend/components/NetDiskSearchResults';
+import YouTubeVideoCard from '@/frontend/components/YouTubeVideoCard';
+import DirectYouTubePlayer from '@/frontend/components/DirectYouTubePlayer';
+import TMDBFilterPanel, { TMDBFilterState } from '@/frontend/components/TMDBFilterPanel';
 
 function SearchPageClient() {
   // 搜索历史

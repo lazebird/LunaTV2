@@ -3,7 +3,7 @@
 import { AlertTriangle, Monitor, Shield, Smartphone, Tv, Activity, Heart, Wrench, Globe, Zap, CheckCircle2, XCircle, Clock, Search } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
-import PageLayout from '@/components/PageLayout';
+import PageLayout from '@/frontend/components/PageLayout';
 
 interface SecurityConfig {
   enableAuth: boolean;

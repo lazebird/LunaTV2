@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { AdminConfig, AdminConfigResult } from '@/lib/admin.types';
+import { AdminConfig, AdminConfigResult } from '@/frontend/lib/admin.types';
 
 export function useAdminConfig() {
   const [config, setConfig] = useState<AdminConfig | null>(null);

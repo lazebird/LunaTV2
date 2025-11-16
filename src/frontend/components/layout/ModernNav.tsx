@@ -7,9 +7,9 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import { ThemeToggle } from '@/components/ThemeToggle';
-import UserMenu from '@/components/user-menu/UserMenu';
-import { useSite } from '@/components/SiteProvider';
+import { ThemeToggle } from '@/frontend/components/ThemeToggle';
+import UserMenu from '@/frontend/components/user-menu/UserMenu';
+import { useSite } from '@/frontend/components/SiteProvider';
 
 interface NavItem {
   icon: any;

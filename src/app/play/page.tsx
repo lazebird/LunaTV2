@@ -7,27 +7,27 @@ import Hls from 'hls.js';
 import { Heart, ChevronUp } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-import EpisodeSelector from '@/components/EpisodeSelector';
-import NetDiskSearchResults from '@/components/NetDiskSearchResults';
-import PageLayout from '@/components/PageLayout';
-import SkipController, { SkipSettingsButton } from '@/components/SkipController';
-import { SearchResult } from '@/lib/types';
-import { getVideoResolutionFromM3u8, processImageUrl } from '@/lib/utils';
+import EpisodeSelector from '@/frontend/components/EpisodeSelector';
+import NetDiskSearchResults from '@/frontend/components/NetDiskSearchResults';
+import PageLayout from '@/frontend/components/PageLayout';
+import SkipController, { SkipSettingsButton } from '@/frontend/components/SkipController';
+import { SearchResult } from '@/frontend/lib/types';
+import { getVideoResolutionFromM3u8, processImageUrl } from '@/frontend/lib/utils';
 import {
   fetchSourcesData,
   fetchSourceDetail,
   preferBestSource,
   checkAllKeywordsMatch,
   fullSpeedTest
-} from '@/components/play/SourceManager';
+} from '@/frontend/components/play/SourceManager';
 
 // 导入拆分后的组件
-import { useDanmakuSystem } from '@/components/play/DanmakuSystem';
-import { usePlayerControls } from '@/components/play/PlayerControls';
-import { useNetDiskSearch } from '@/components/play/NetDiskSearch';
-import { useVideoDetails } from '@/components/play/VideoDetails';
-import { usePlayerCore } from '@/components/play/PlayerCore';
-import { usePlayRecord, useFavorite, useBackToTop, useMemoryManagement } from '@/components/play/PlayerUtils';
+import { useDanmakuSystem } from '@/frontend/components/play/DanmakuSystem';
+import { usePlayerControls } from '@/frontend/components/play/PlayerControls';
+import { useNetDiskSearch } from '@/frontend/components/play/NetDiskSearch';
+import { useVideoDetails } from '@/frontend/components/play/VideoDetails';
+import { usePlayerCore } from '@/frontend/components/play/PlayerCore';
+import { usePlayRecord, useFavorite, useBackToTop, useMemoryManagement } from '@/frontend/components/play/PlayerUtils';
 
 // 扩展 HTMLVideoElement 类型以支持 hls 属性
 declare global {
@@ -629,7 +629,7 @@ function PlayPageClient() {
       // 清除前一个历史记录
       if (currentSourceRef.current && currentIdRef.current) {
         try {
-          const dbClient = require('@/lib/db.client');
+          const dbClient = require('@/frontend/lib/db.client');
           const { deletePlayRecord } = dbClient;
           await deletePlayRecord(currentSourceRef.current, currentIdRef.current);
           console.log('已清除前一个播放记录');

@@ -4,9 +4,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronUp } from 'lucide-react';
 
-import { getAuthInfoFromBrowserCookie } from '@/lib/auth';
-import { PlayRecord } from '@/lib/types';
-import { getAllPlayRecords } from '@/lib/db.client';
+import { getAuthInfoFromBrowserCookie } from '@/frontend/lib/auth';
+import { PlayRecord } from '@/frontend/lib/types';
+import { getAllPlayRecords } from '@/frontend/lib/db.client';
 import {
   getCachedWatchingUpdates,
   getDetailedWatchingUpdates,
@@ -14,7 +14,7 @@ import {
   markUpdatesAsViewed,
   forceClearWatchingUpdatesCache,
   type WatchingUpdate,
-} from '@/lib/watching-updates';
+} from '@/frontend/lib/watching-updates';
 
 // Extended type for individual update items
 interface UpdateItem {
@@ -37,11 +37,11 @@ interface UpdateItem {
   remarks?: string;
 }
 
-import PageLayout from '@/components/PageLayout';
-import VideoCard from '@/components/VideoCard';
-import StatsOverview from '@/components/play-stats/StatsOverview';
-import PlayRecordsList from '@/components/play-stats/PlayRecordsList';
-import WatchTimeChart from '@/components/play-stats/WatchTimeChart';
+import PageLayout from '@/frontend/components/PageLayout';
+import VideoCard from '@/frontend/components/VideoCard';
+import StatsOverview from '@/frontend/components/play-stats/StatsOverview';
+import PlayRecordsList from '@/frontend/components/play-stats/PlayRecordsList';
+import WatchTimeChart from '@/frontend/components/play-stats/WatchTimeChart';
 
 // 返回顶部组件
 const BackToTop = ({ show }: { show: boolean }) => {
