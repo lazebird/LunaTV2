@@ -721,6 +721,26 @@ function AdminPageClient() {
         {/* 右侧内容区域 */}
         <div className='flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900'>
           <div className='p-6'>
+            {/* 系统信息 */}
+            <div className='mb-6 bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 shadow-sm'>
+              <h3 className='text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3'>
+                系统信息
+              </h3>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4 text-sm'>
+                <div className='flex items-center justify-between'>
+                  <span className='text-gray-600 dark:text-gray-400'>存储方案:</span>
+                  <span className='px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 rounded-md font-medium'>
+                    {(window as any).RUNTIME_CONFIG?.STORAGE_TYPE || 'localstorage'}
+                  </span>
+                </div>
+                <div className='flex items-center justify-between'>
+                  <span className='text-gray-600 dark:text-gray-400'>当前角色:</span>
+                  <span className='px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200 rounded-md font-medium'>
+                    {role === 'owner' ? '所有者' : role === 'admin' ? '管理员' : '用户'}
+                  </span>
+                </div>
+              </div>
+            </div>
             {/* 配置文件标签 - 仅站长可见 */}
             {role === 'owner' && activeMenu === 'configFile' && (
               <div className='mb-6'>

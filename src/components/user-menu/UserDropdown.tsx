@@ -2,18 +2,15 @@
 
 import { useRouter } from 'next/navigation';
 import {
-  BarChart3,
   Bell,
   Calendar,
-  ExternalLink,
+  ChartColumn,
+  CirclePlay,
   Heart,
-  KeyRound,
   LogOut,
-  PlayCircle,
-  Settings,
   Shield,
   Tv,
-  User,
+  Settings,
 } from 'lucide-react';
 
 import { CURRENT_VERSION } from '@/lib/version';
@@ -45,78 +42,83 @@ export default function UserDropdown({ data, onClose, onMarkUpdatesAsViewed }: U
 
   const menuItems = [
     {
-      icon: User,
-      label: '个人中心',
-      href: '/profile',
-      show: data.isLoggedIn,
+      icon: Settings,
+      label: '本地设置',
+      href: '#',
+      show: true,
+      onClick: () => {
+        // 打开本地设置弹窗
+        const userMenuElement = document.querySelector('[data-user-menu]');
+        if (userMenuElement) {
+          // 通过自定义事件通知父组件打开设置弹窗
+          const event = new CustomEvent('openSettings');
+          userMenuElement.dispatchEvent(event);
+        }
+      },
     },
     {
-      icon: PlayCircle,
-      label: '播放统计',
-      href: '/play-stats',
+      icon: Bell,
+      label: '更新提醒',
+      href: '#',
       show: data.isLoggedIn,
-      badge: data.playRecords.length > 0 ? data.playRecords.length : undefined,
+      onClick: () => {
+        // 切换到更新通知标签
+        if (typeof window !== 'undefined') {
+          const userMenuElement = document.querySelector('[data-user-menu]');
+          if (userMenuElement) {
+            (userMenuElement as any).setActiveTab?.('updates');
+          }
+        }
+      },
+    },
+    {
+      icon: CirclePlay,
+      label: '继续观看',
+      href: '#',
+      show: data.isLoggedIn && data.playRecords.length > 0,
+      onClick: () => {
+        // 切换到最近播放标签
+        if (typeof window !== 'undefined') {
+          const userMenuElement = document.querySelector('[data-user-menu]');
+          if (userMenuElement) {
+            (userMenuElement as any).setActiveTab?.('recent');
+          }
+        }
+      },
     },
     {
       icon: Heart,
       label: '我的收藏',
       href: '/favorites',
       show: data.isLoggedIn,
-      badge: data.favorites.length > 0 ? data.favorites.length : undefined,
+    },
+    {
+      icon: Shield,
+      label: '管理面板',
+      href: '/admin',
+      show: data.isOwner || data.isAdmin,
+    },
+    {
+      icon: ChartColumn,
+      label: '播放统计',
+      href: '/play-stats',
+      show: data.isLoggedIn,
     },
     {
       icon: Calendar,
-      label: '上映日历',
+      label: '上映日程',
       href: '/release-calendar',
       show: true,
     },
     {
       icon: Tv,
-      label: '直播',
-      href: '/live',
+      label: 'TVBox 配置',
+      href: '/tvbox',
       show: true,
-    },
-    {
-      icon: Bell,
-      label: '更新通知',
-      href: '#',
-      show: data.isLoggedIn,
-      onClick: handleMarkAllAsViewed,
-    },
-    {
-      icon: BarChart3,
-      label: '数据统计',
-      href: '/admin/stats',
-      show: data.isAdmin,
-    },
-    {
-      icon: Settings,
-      label: '系统设置',
-      href: '/admin',
-      show: data.isAdmin,
-    },
-    {
-      icon: KeyRound,
-      label: 'API密钥',
-      href: '/admin/user-tvbox-token',
-      show: data.isOwner,
-    },
-    {
-      icon: Shield,
-      label: '安全中心',
-      href: '/tvbox-security',
-      show: data.isOwner,
-    },
-    {
-      icon: ExternalLink,
-      label: '项目主页',
-      href: 'https://github.com/lazebird/LunaTV2',
-      show: true,
-      external: true,
     },
     {
       icon: LogOut,
-      label: '退出登录',
+      label: '登出',
       href: '#',
       show: data.isLoggedIn,
       onClick: handleLogout,
@@ -127,64 +129,69 @@ export default function UserDropdown({ data, onClose, onMarkUpdatesAsViewed }: U
   const visibleItems = menuItems.filter(item => item.show);
 
   return (
-    <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+    <div className="p-2">
       {/* 用户信息 */}
       {data.isLoggedIn && (
-        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-            {data.username}
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {data.isOwner ? '所有者' : data.isAdmin ? '管理员' : '用户'}
-          </p>
+        <div className="px-3 py-2.5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100/50 dark:from-gray-800 dark:to-gray-800/50">
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">当前用户</span>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                {data.isOwner ? '站长' : data.isAdmin ? '管理员' : '用户'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">
+                {data.username}
+              </div>
+              <div className="text-[10px] text-gray-400 dark:text-gray-500">
+                数据存储：{(window as any).RUNTIME_CONFIG?.STORAGE_TYPE || 'localstorage'}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       {/* 菜单项 */}
-      {visibleItems.map((item, index) => {
-        const Icon = item.icon;
-        
-        return (
-          <a
-            key={index}
-            href={item.href}
-            onClick={(e) => {
-              if (item.onClick) {
-                e.preventDefault();
-                item.onClick();
-              }
-              if (!item.external) {
+      <div className="py-1">
+        {visibleItems.map((item, index) => {
+          const Icon = item.icon;
+          
+          return (
+            <button
+              key={index}
+              onClick={(e) => {
+                if (item.onClick) {
+                  item.onClick();
+                }
+                if (item.href && item.href !== '#') {
+                  window.location.href = item.href;
+                }
                 onClose();
-              }
-            }}
-            target={item.external ? '_blank' : undefined}
-            rel={item.external ? 'noopener noreferrer' : undefined}
-            className={`flex items-center px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-              item.danger ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'
-            }`}
-          >
-            <Icon className="w-4 h-4 mr-3" />
-            <span className="flex-1">{item.label}</span>
-            {item.badge && (
-              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200">
-                {item.badge}
-              </span>
-            )}
-          </a>
-        );
-      })}
+              }}
+              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-sm relative ${
+                item.danger 
+                  ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20' 
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            >
+              <Icon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              <span className="font-medium">{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 分隔线 */}
+      <div className="my-1 border-t border-gray-200 dark:border-gray-700"></div>
 
       {/* 版本信息 */}
-      <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700 mt-1">
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          版本: {CURRENT_VERSION}
-        </p>
-        {data.updateStatus && data.updateStatus.hasUpdate && (
-          <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-            有新版本可用
-          </p>
-        )}
-      </div>
+      <button className="w-full px-3 py-2 text-center flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-xs">
+        <div className="flex items-center gap-1">
+          <span className="font-mono">v{CURRENT_VERSION}</span>
+          <div className="w-2 h-2 rounded-full -translate-y-2 bg-green-400"></div>
+        </div>
+      </button>
     </div>
   );
 }

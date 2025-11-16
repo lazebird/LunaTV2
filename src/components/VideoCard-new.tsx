@@ -89,7 +89,6 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
         setShowMobileActions(true);
       }
     },
-    delay: 500,
   });
 
   // 暴露给父组件的方法
@@ -140,7 +139,14 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
       if (favorited) {
         await deleteFavorite(source, id);
       } else {
-        await saveFavorite(source, id, title, poster, dynamicEpisodes);
+        await saveFavorite(source, id, {
+          source_name: source_name || '',
+          total_episodes: dynamicEpisodes || episodes || 0,
+          title,
+          year: year || '',
+          cover: poster,
+          save_time: Date.now(),
+        });
       }
       setFavorited(!favorited);
       
@@ -179,11 +185,15 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
       const { savePlayRecord } = await import('@/lib/db.client');
       await savePlayRecord(source, id, {
         title,
-        poster,
-        episodes: dynamicEpisodes,
-        source_name,
-        year,
-        type,
+        cover: poster,
+        index: currentEpisode || 0,
+        total_episodes: dynamicEpisodes || episodes || 0,
+        source_name: source_name || '',
+        year: year || '',
+        play_time: 0,
+        total_time: 0,
+        save_time: Date.now(),
+        search_title: title,
         remarks,
       });
     } catch (error) {
@@ -224,20 +234,61 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
         <MobileActionSheet
           isOpen={showMobileActions}
           onClose={() => setShowMobileActions(false)}
-          title={title}
-        >
-          <VideoCardActions
-            id={id}
-            source={source}
-            title={title}
-            from={from}
-            onDelete={onDelete}
-            onPlay={handlePlay}
-            onToggleFavorite={handleToggleFavorite}
-            favorited={favorited}
-            origin={origin}
-          />
-        </MobileActionSheet>
+          title={title || ''}
+          poster={poster}
+          actions={[
+            {
+              id: 'play',
+              label: '播放',
+              icon: <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" /></svg>,
+              onClick: handlePlay,
+            },
+            {
+              id: 'favorite',
+              label: favorited ? '取消收藏' : '添加收藏',
+              icon: <svg className={`w-5 h-5 ${favorited ? 'fill-red-500 text-red-500' : 'text-gray-500'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" /></svg>,
+              onClick: handleToggleFavorite,
+            },
+            {
+              id: 'share',
+              label: '分享',
+              icon: <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>,
+              onClick: () => {
+                if (navigator.share && id && source) {
+                  navigator.share({
+                    title: title,
+                    url: `${window.location.origin}/play?source=${encodeURIComponent(source)}&id=${encodeURIComponent(id)}`,
+                  });
+                }
+              },
+            },
+            ...(from === 'playrecord' || from === 'favorite' ? [{
+              id: 'delete',
+              label: '删除',
+              icon: <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
+              onClick: async () => {
+                if (onDelete) {
+                  onDelete();
+                } else if (id && source) {
+                  try {
+                    if (from === 'favorite') {
+                      const { deleteFavorite } = await import('@/lib/db.client');
+                      await deleteFavorite(source, id);
+                    } else if (from === 'playrecord') {
+                      const { deletePlayRecord } = await import('@/lib/db.client');
+                      await deletePlayRecord(source, id);
+                    }
+                    setShowMobileActions(false);
+                  } catch (error) {
+                    console.error('删除失败:', error);
+                  }
+                }
+              },
+              color: 'danger' as const,
+            }] : []),
+          ]}
+          origin={origin}
+        />
       )}
     </div>
   );

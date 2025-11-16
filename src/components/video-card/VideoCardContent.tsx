@@ -48,7 +48,7 @@ export function VideoCardContent({
       {/* 海报 */}
       <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-gray-200 dark:bg-gray-700">
         {!imageLoaded && (
-          <ImagePlaceholder />
+          <ImagePlaceholder aspectRatio="aspect-[3/4]" />
         )}
         
         <Image

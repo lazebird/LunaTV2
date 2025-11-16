@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { 
   Maximize2, 
-  Minimize2, 
   Pause, 
   Play, 
   Volume2, 
@@ -131,7 +130,7 @@ export function PlayerControls({
                 />
               </div>
             )}
-          </button>
+          </div>
         </div>
 
         {/* 右侧控制 */}

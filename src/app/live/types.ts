@@ -13,6 +13,7 @@ export interface LiveSource {
   id: string;
   name: string;
   url: string;
+  tvgId?: string;
   groupTitle?: string;
   group?: string;
   isActive?: boolean;

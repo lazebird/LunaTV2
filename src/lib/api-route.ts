@@ -74,13 +74,18 @@ export function createApiRoute<T = any>(
   // 包装处理器
   const wrappedHandler = withErrorHandler(async (req: NextRequest, context?: any) => {
     // 执行中间件
-    await middleware(req, context);
+    const middlewareResult = await middleware(req, context);
+    if (middlewareResult) {
+      return middlewareResult;
+    }
 
     // 执行处理器
     const data = await handler(req, context);
 
     // 返回成功响应
-    return createSuccessResponse(data);
+    return NextResponse.json(
+      createSuccessResponse(data)
+    );
   });
 
   return wrappedHandler;
