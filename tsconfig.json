@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2015",
     "lib": [
       "dom",
       "dom.iterable",
@@ -17,6 +17,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
+    "downlevelIteration": true,
     "baseUrl": ".",
     "paths": {
       "@/*": [
@@ -66,9 +67,5 @@
   "exclude": [
     "node_modules"
   ],
-  "moduleResolution": [
-    "node_modules",
-    ".next",
-    "node"
-  ]
+  
 }

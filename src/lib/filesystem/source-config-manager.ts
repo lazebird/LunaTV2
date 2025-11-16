@@ -31,7 +31,7 @@ export class SourceConfigManager {
   async loadSourceConfig(sourceConfigFile: string): Promise<any[]> {
     try {
       const sourceConfigPath = this.getSourceConfigPath(sourceConfigFile);
-      const sources = await this.fileOps.readJsonFile<any[]>(sourceConfigPath);
+      const sources = await this.fileOps.readJsonFile(sourceConfigPath) as any[];
       return sources || [];
     } catch (error) {
       console.error('加载源配置文件失败:', error);

@@ -1,3 +1,15 @@
+export interface UserInfo {
+  username: string;
+  role: 'user' | 'admin' | 'owner';
+  banned?: boolean;
+  enabledApis?: string[]; // 优先级高于tags限制（网站内搜索用）
+  tags?: string[]; // 多 tags 取并集限制
+  createdAt?: number; // 用户注册时间戳
+  tvboxToken?: string; // 用户专属的 TVBox Token
+  tvboxEnabledSources?: string[]; // TVBox 可访问的源（为空则返回所有源）
+  showAdultContent?: boolean; // 用户级别的成人内容显示控制
+}
+
 export interface AdminConfig {
   ConfigSubscribtion: {
     URL: string;
@@ -26,17 +38,7 @@ export interface AdminConfig {
     AllowRegister?: boolean; // 是否允许用户注册，默认 true
     AutoCleanupInactiveUsers?: boolean; // 是否自动清理非活跃用户，默认 false
     InactiveUserDays?: number; // 非活跃用户保留天数，默认 7
-    Users: {
-      username: string;
-      role: 'user' | 'admin' | 'owner';
-      banned?: boolean;
-      enabledApis?: string[]; // 优先级高于tags限制（网站内搜索用）
-      tags?: string[]; // 多 tags 取并集限制
-      createdAt?: number; // 用户注册时间戳
-      tvboxToken?: string; // 用户专属的 TVBox Token
-      tvboxEnabledSources?: string[]; // TVBox 可访问的源（为空则返回所有源）
-      showAdultContent?: boolean; // 用户级别的成人内容显示控制
-    }[];
+    Users: UserInfo[];
     Tags?: {
       name: string;
       enabledApis: string[];

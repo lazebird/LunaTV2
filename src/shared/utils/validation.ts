@@ -65,9 +65,11 @@ export function validateForm<T extends Record<string, any>>(
   const errors: Record<string, string> = {};
 
   for (const [field, validator] of Object.entries(rules)) {
-    const error = validator(data[field]);
-    if (error) {
-      errors[field] = error;
+    if (validator) {
+      const error = validator(data[field]);
+      if (error) {
+        errors[field] = error;
+      }
     }
   }
 

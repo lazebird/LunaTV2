@@ -32,22 +32,29 @@ export function validateAuth(request: NextRequest) {
  * 创建标准化的错误响应
  */
 export function createErrorResponse(error: string, status: number = 500) {
-  return Response.json({ error }, { status });
+  return new Response(JSON.stringify({ error }), { 
+    status,
+    headers: { 'Content-Type': 'application/json' }
+  });
 }
 
 /**
  * 创建标准化的成功响应
  */
 export function createSuccessResponse<T>(data: T, status: number = 200) {
-  return Response.json(data, { status });
+  return new Response(JSON.stringify(data), { 
+    status,
+    headers: { 'Content-Type': 'application/json' }
+  });
 }
 
 /**
  * 创建带有缓存头部的响应
  */
 export function createCachedResponse<T>(data: T, cacheTime: number) {
-  return Response.json(data, {
+  return new Response(JSON.stringify(data), {
     headers: {
+      'Content-Type': 'application/json',
       'Cache-Control': `public, max-age=${cacheTime}, s-maxage=${cacheTime}`,
       'CDN-Cache-Control': `public, s-maxage=${cacheTime}`,
       'Vercel-CDN-Cache-Control': `public, s-maxage=${cacheTime}`,
@@ -122,7 +129,7 @@ export async function retry<T>(
       lastError = error;
       
       if (i < maxRetries) {
-        console.warn(`Retry ${i + 1}/${maxRetries} after error:`, error.message);
+        console.warn(`Retry ${i + 1}/${maxRetries} after error:`, error instanceof Error ? error.message : String(error));
         await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
       }
     }

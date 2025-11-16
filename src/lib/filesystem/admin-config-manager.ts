@@ -23,7 +23,7 @@ export class AdminConfigManager {
    * 加载AdminConfig，处理源配置文件引用
    */
   async loadAdminConfig(): Promise<AdminConfig | null> {
-    const rawConfig = await this.fileOps.readJsonFile<AdminConfig>(this.adminConfigPath);
+    const rawConfig = await this.fileOps.readJsonFile(this.adminConfigPath) as AdminConfig;
     
     if (!rawConfig) {
       return null;
@@ -54,7 +54,7 @@ export class AdminConfigManager {
    * 保存AdminConfig，清理冗余字段
    */
   async saveAdminConfig(config: AdminConfig): Promise<void> {
-    const existingConfig = await this.fileOps.readJsonFile<AdminConfig>(this.adminConfigPath).catch(() => null);
+    const existingConfig = await this.fileOps.readJsonFile(this.adminConfigPath).catch(() => null) as AdminConfig | null;
     
     // 准备要保存到文件的配置对象（清理冗余字段）
     const configToSave: any = { ...config };
@@ -124,7 +124,7 @@ export class AdminConfigManager {
       const configData = JSON.parse(configContent);
       const sourceSources = this.sourceConfigManager.extractSourceConfigFromConfigData(configData);
       
-      const existingConfig = await this.fileOps.readJsonFile<AdminConfig>(this.adminConfigPath).catch(() => null);
+      const existingConfig = await this.fileOps.readJsonFile(this.adminConfigPath).catch(() => null) as AdminConfig | null;
       
       if (existingConfig && (existingConfig as any)._sourceConfigFile) {
         await this.sourceConfigManager.saveSourceConfig(
@@ -146,7 +146,7 @@ export class AdminConfigManager {
    * 从源配置文件中删除指定的源
    */
   async removeSources(keys: string[]): Promise<boolean> {
-    const existingConfig = await this.fileOps.readJsonFile<AdminConfig>(this.adminConfigPath).catch(() => null);
+    const existingConfig = await this.fileOps.readJsonFile(this.adminConfigPath).catch(() => null) as AdminConfig | null;
     
     if (!existingConfig || !(existingConfig as any)._sourceConfigFile) {
       return false;
