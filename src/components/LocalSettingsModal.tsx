@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 
 interface LocalSettings {
@@ -35,15 +35,13 @@ interface LocalSettingsModalProps {
 export default function LocalSettingsModal({ isOpen, onClose }: LocalSettingsModalProps) {
   const [settings, setSettings] = useState<LocalSettings>(DEFAULT_SETTINGS);
 
-  // Load settings when modal opens
-  useState(() => {
+  useEffect(() => {
     if (isOpen) {
       loadSettings();
     }
-  });
+  }, [isOpen]);
 
   const loadSettings = () => {
-    // Load from localStorage
     const savedSettings = localStorage.getItem('localSettings');
     let loadedSettings = { ...DEFAULT_SETTINGS };
     
@@ -52,10 +50,10 @@ export default function LocalSettingsModal({ isOpen, onClose }: LocalSettingsMod
         const parsed = JSON.parse(savedSettings);
         loadedSettings = { ...DEFAULT_SETTINGS, ...parsed };
       } catch (error) {
-        console.error('Failed to parse local settings:', error);
+        console.error('解析本地设置失败:', error);
       }
     } else {
-      // Try to load from individual keys
+      // 从各个独立键名读取
       try {
         const doubanDataSource = localStorage.getItem('doubanDataSource');
         const doubanImageProxyType = localStorage.getItem('doubanImageProxyType');
@@ -77,7 +75,7 @@ export default function LocalSettingsModal({ isOpen, onClose }: LocalSettingsMod
         if (enableAutoNextEpisode) loadedSettings.autoPlayNext = JSON.parse(enableAutoNextEpisode);
         if (continueWatchingFilter) loadedSettings.continueWatchingFilter = JSON.parse(continueWatchingFilter);
       } catch (error) {
-        console.error('Failed to load individual settings:', error);
+        console.error('加载独立设置失败:', error);
       }
     }
     
@@ -87,10 +85,10 @@ export default function LocalSettingsModal({ isOpen, onClose }: LocalSettingsMod
   const saveSettings = (newSettings: LocalSettings) => {
     setSettings(newSettings);
     
-    // Save to unified local settings
+    // 保存到统一的本地设置
     localStorage.setItem('localSettings', JSON.stringify(newSettings));
     
-    // Also save to individual keys for compatibility
+    // 同时保存到各个组件使用的独立键名
     localStorage.setItem('doubanDataSource', newSettings.doubanProxyType);
     localStorage.setItem('doubanImageProxyType', newSettings.doubanImageProxyType);
     localStorage.setItem('defaultAggregateSearch', JSON.stringify(newSettings.aggregateSearch));
@@ -101,7 +99,7 @@ export default function LocalSettingsModal({ isOpen, onClose }: LocalSettingsMod
     localStorage.setItem('enableAutoNextEpisode', JSON.stringify(newSettings.autoPlayNext));
     localStorage.setItem('continueWatchingFilter', JSON.stringify(newSettings.continueWatchingFilter));
     
-    // Trigger custom event
+    // 触发自定义事件
     window.dispatchEvent(new CustomEvent('localStorageChanged', {
       detail: { key: 'localSettings', value: newSettings }
     }));
@@ -201,7 +199,7 @@ export default function LocalSettingsModal({ isOpen, onClose }: LocalSettingsMod
                       strokeLinejoin="round"
                       className="w-4 h-4 text-gray-400 dark:text-gray-500"
                     >
-                      <path d="m6 9 6 6 6-6"></path>
+                      <path d="m6 9 6 6 6 6-6"></path>
                     </svg>
                   </div>
                 </div>
@@ -244,7 +242,7 @@ export default function LocalSettingsModal({ isOpen, onClose }: LocalSettingsMod
                       strokeLinejoin="round"
                       className="w-4 h-4 text-gray-400 dark:text-gray-500"
                     >
-                      <path d="m6 9 6 6 6-6"></path>
+                      <path d="m6 9 6 6 6 6-6"></path>
                     </svg>
                   </div>
                 </div>
