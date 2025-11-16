@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X } from 'lucide-react';
 
 interface LocalSettings {
@@ -35,57 +35,62 @@ interface LocalSettingsModalProps {
 export default function LocalSettingsModal({ isOpen, onClose }: LocalSettingsModalProps) {
   const [settings, setSettings] = useState<LocalSettings>(DEFAULT_SETTINGS);
 
-  useEffect(() => {
+  // Load settings when modal opens
+  useState(() => {
     if (isOpen) {
-      // 从localStorage加载设置，优先从统一设置中读取，如果没有则从各个独立键名读取
-      const savedSettings = localStorage.getItem('localSettings');
-      let loadedSettings = { ...DEFAULT_SETTINGS };
-      
-      if (savedSettings) {
-        try {
-          const parsed = JSON.parse(savedSettings);
-          loadedSettings = { ...DEFAULT_SETTINGS, ...parsed };
-        } catch (error) {
-          console.error('解析本地设置失败:', error);
-        }
-      } else {
-        // 如果没有统一设置，从各个独立键名读取
-        try {
-          const doubanDataSource = localStorage.getItem('doubanDataSource');
-          const doubanImageProxyType = localStorage.getItem('doubanImageProxyType');
-          const defaultAggregateSearch = localStorage.getItem('defaultAggregateSearch');
-          const speedTest = localStorage.getItem('speedTest');
-          const fluidSearch = localStorage.getItem('fluidSearch');
-          const iptvDirectConnection = localStorage.getItem('iptvDirectConnection');
-          const enableAutoSkip = localStorage.getItem('enableAutoSkip');
-          const enableAutoNextEpisode = localStorage.getItem('enableAutoNextEpisode');
-          const continueWatchingFilter = localStorage.getItem('continueWatchingFilter');
-          
-          if (doubanDataSource) loadedSettings.doubanProxyType = doubanDataSource as any;
-          if (doubanImageProxyType) loadedSettings.doubanImageProxyType = doubanImageProxyType as any;
-          if (defaultAggregateSearch) loadedSettings.aggregateSearch = JSON.parse(defaultAggregateSearch);
-          if (speedTest) loadedSettings.speedTest = JSON.parse(speedTest);
-          if (fluidSearch) loadedSettings.fluidSearch = JSON.parse(fluidSearch);
-          if (iptvDirectConnection) loadedSettings.iptvDirectConnection = JSON.parse(iptvDirectConnection);
-          if (enableAutoSkip) loadedSettings.skipIntroOutro = JSON.parse(enableAutoSkip);
-          if (enableAutoNextEpisode) loadedSettings.autoPlayNext = JSON.parse(enableAutoNextEpisode);
-          if (continueWatchingFilter) loadedSettings.continueWatchingFilter = JSON.parse(continueWatchingFilter);
-        } catch (error) {
-          console.error('加载独立设置失败:', error);
-        }
-      }
-      
-      setSettings(loadedSettings);
+      loadSettings();
     }
-  }, [isOpen]);
+  });
+
+  const loadSettings = () => {
+    // Load from localStorage
+    const savedSettings = localStorage.getItem('localSettings');
+    let loadedSettings = { ...DEFAULT_SETTINGS };
+    
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        loadedSettings = { ...DEFAULT_SETTINGS, ...parsed };
+      } catch (error) {
+        console.error('Failed to parse local settings:', error);
+      }
+    } else {
+      // Try to load from individual keys
+      try {
+        const doubanDataSource = localStorage.getItem('doubanDataSource');
+        const doubanImageProxyType = localStorage.getItem('doubanImageProxyType');
+        const defaultAggregateSearch = localStorage.getItem('defaultAggregateSearch');
+        const speedTest = localStorage.getItem('speedTest');
+        const fluidSearch = localStorage.getItem('fluidSearch');
+        const iptvDirectConnection = localStorage.getItem('iptvDirectConnection');
+        const enableAutoSkip = localStorage.getItem('enableAutoSkip');
+        const enableAutoNextEpisode = localStorage.getItem('enableAutoNextEpisode');
+        const continueWatchingFilter = localStorage.getItem('continueWatchingFilter');
+        
+        if (doubanDataSource) loadedSettings.doubanProxyType = doubanDataSource as any;
+        if (doubanImageProxyType) loadedSettings.doubanImageProxyType = doubanImageProxyType as any;
+        if (defaultAggregateSearch) loadedSettings.aggregateSearch = JSON.parse(defaultAggregateSearch);
+        if (speedTest) loadedSettings.speedTest = JSON.parse(speedTest);
+        if (fluidSearch) loadedSettings.fluidSearch = JSON.parse(fluidSearch);
+        if (iptvDirectConnection) loadedSettings.iptvDirectConnection = JSON.parse(iptvDirectConnection);
+        if (enableAutoSkip) loadedSettings.skipIntroOutro = JSON.parse(enableAutoSkip);
+        if (enableAutoNextEpisode) loadedSettings.autoPlayNext = JSON.parse(enableAutoNextEpisode);
+        if (continueWatchingFilter) loadedSettings.continueWatchingFilter = JSON.parse(continueWatchingFilter);
+      } catch (error) {
+        console.error('Failed to load individual settings:', error);
+      }
+    }
+    
+    setSettings(loadedSettings);
+  };
 
   const saveSettings = (newSettings: LocalSettings) => {
     setSettings(newSettings);
     
-    // 保存到统一的本地设置
+    // Save to unified local settings
     localStorage.setItem('localSettings', JSON.stringify(newSettings));
     
-    // 同时保存到各个组件使用的独立键名，确保兼容性
+    // Also save to individual keys for compatibility
     localStorage.setItem('doubanDataSource', newSettings.doubanProxyType);
     localStorage.setItem('doubanImageProxyType', newSettings.doubanImageProxyType);
     localStorage.setItem('defaultAggregateSearch', JSON.stringify(newSettings.aggregateSearch));
@@ -96,73 +101,9 @@ export default function LocalSettingsModal({ isOpen, onClose }: LocalSettingsMod
     localStorage.setItem('enableAutoNextEpisode', JSON.stringify(newSettings.autoPlayNext));
     localStorage.setItem('continueWatchingFilter', JSON.stringify(newSettings.continueWatchingFilter));
     
-    // 触发自定义事件，通知其他组件设置已更改
+    // Trigger custom event
     window.dispatchEvent(new CustomEvent('localStorageChanged', {
       detail: { key: 'localSettings', value: newSettings }
-    }));
-    
-    // 同时触发各个独立键名的storage事件，确保其他组件能够响应
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'doubanDataSource',
-      newValue: newSettings.doubanProxyType,
-      oldValue: settings.doubanProxyType,
-      storageArea: localStorage
-    }));
-    
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'doubanImageProxyType',
-      newValue: newSettings.doubanImageProxyType,
-      oldValue: settings.doubanImageProxyType,
-      storageArea: localStorage
-    }));
-    
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'defaultAggregateSearch',
-      newValue: JSON.stringify(newSettings.aggregateSearch),
-      oldValue: JSON.stringify(settings.aggregateSearch),
-      storageArea: localStorage
-    }));
-    
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'speedTest',
-      newValue: JSON.stringify(newSettings.speedTest),
-      oldValue: JSON.stringify(settings.speedTest),
-      storageArea: localStorage
-    }));
-    
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'fluidSearch',
-      newValue: JSON.stringify(newSettings.fluidSearch),
-      oldValue: JSON.stringify(settings.fluidSearch),
-      storageArea: localStorage
-    }));
-    
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'iptvDirectConnection',
-      newValue: JSON.stringify(newSettings.iptvDirectConnection),
-      oldValue: JSON.stringify(settings.iptvDirectConnection),
-      storageArea: localStorage
-    }));
-    
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'enableAutoSkip',
-      newValue: JSON.stringify(newSettings.skipIntroOutro),
-      oldValue: JSON.stringify(settings.skipIntroOutro),
-      storageArea: localStorage
-    }));
-    
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'enableAutoNextEpisode',
-      newValue: JSON.stringify(newSettings.autoPlayNext),
-      oldValue: JSON.stringify(settings.autoPlayNext),
-      storageArea: localStorage
-    }));
-    
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'continueWatchingFilter',
-      newValue: JSON.stringify(newSettings.continueWatchingFilter),
-      oldValue: JSON.stringify(settings.continueWatchingFilter),
-      storageArea: localStorage
     }));
   };
 
