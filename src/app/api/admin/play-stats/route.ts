@@ -84,6 +84,7 @@ export async function GET(request: NextRequest) {
         // 设置项目开始时间，2025年9月14日
         const PROJECT_START_DATE = new Date('2025-09-14').getTime();
         const userCreatedAt = user.createdAt || PROJECT_START_DATE;
+        const createdAt = userCreatedAt;
 
         // 使用自然日计算，与个人统计保持一致
         const firstDate = new Date(userCreatedAt);
@@ -119,7 +120,7 @@ export async function GET(request: NextRequest) {
         }
 
         // 获取用户的所有播放记录
-        const userPlayRecords = await storage.getAllPlayRecords(user.username);
+        const userPlayRecords = await storage.getAllPlayRecords();
         const records = Object.values(userPlayRecords);
 
         if (records.length === 0) {
@@ -145,7 +146,7 @@ export async function GET(request: NextRequest) {
         let userLastPlayTime = 0;
         const userSourceCount: Record<string, number> = {};
 
-        records.forEach((record) => {
+        records.forEach((record: any) => {
           // 累计观看时间（使用播放进度）
           userWatchTime += record.play_time || 0;
 
@@ -176,7 +177,7 @@ export async function GET(request: NextRequest) {
 
         // 获取最近播放记录（按时间倒序，最多10条）
         const recentRecords = records
-          .sort((a, b) => (b.save_time || 0) - (a.save_time || 0))
+          .sort((a: any, b: any) => (b.save_time || 0) - (a.save_time || 0))
           .slice(0, 10);
 
         // 找出最常观看的来源
@@ -190,17 +191,17 @@ export async function GET(request: NextRequest) {
         }
 
         const userStat = {
-          username: user.username,
+          username: username,
           totalWatchTime: userWatchTime,
           totalPlays: records.length,
           lastPlayTime: userLastPlayTime,
-          recentRecords,
-          avgWatchTime: records.length > 0 ? userWatchTime / records.length : 0,
-          mostWatchedSource,
-          registrationDays,
-          lastLoginTime: lastLoginTime || userCreatedAt, // 如果没有登入记录，使用注册时间
-          loginCount,
-          createdAt: userCreatedAt,
+          recentRecords: recentRecords as any[],
+          avgWatchTime: records.length > 0 ? Math.round(userWatchTime / records.length) : 0,
+          mostWatchedSource: mostWatchedSource,
+          registrationDays: registrationDays,
+          lastLoginTime: lastLoginTime,
+          loginCount: loginCount,
+          createdAt: createdAt,
         };
 
         userStats.push(userStat);

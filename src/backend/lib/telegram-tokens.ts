@@ -68,18 +68,26 @@ export async function getTelegramToken(token: string): Promise<TelegramTokenData
 
     console.log('[TelegramToken] Data found');
     console.log('[TelegramToken] Current time:', Date.now());
-    console.log('[TelegramToken] Expires at:', data.expiresAt);
-    console.log('[TelegramToken] Time difference (ms):', data.expiresAt - Date.now());
+    
+    // Type guard to ensure data has the expected structure
+    if (typeof data !== 'object' || data === null || !('expiresAt' in data)) {
+      console.log('[TelegramToken] Invalid data structure');
+      return null;
+    }
+    
+    const tokenData = data as TelegramTokenData;
+    console.log('[TelegramToken] Expires at:', tokenData.expiresAt);
+    console.log('[TelegramToken] Time difference (ms):', tokenData.expiresAt - Date.now());
 
     // 仅检查过期但不删除（让 Redis TTL 自动处理过期）
     // 这样 webhook 可以多次读取同一个 token
-    if (data.expiresAt < Date.now()) {
+    if (tokenData.expiresAt < Date.now()) {
       console.log('[TelegramToken] Token expired (TTL should have handled this)');
       return null;
     }
 
     console.log('[TelegramToken] Token valid, returning data');
-    return data as TelegramTokenData;
+    return tokenData;
   } catch (error) {
     console.error('[TelegramToken] Failed to get token:', error);
     console.error('[TelegramToken] Error stack:', error instanceof Error ? error.stack : 'N/A');
@@ -105,10 +113,18 @@ export async function verifyAndConsumeTelegramToken(token: string): Promise<Tele
 
     console.log('[TelegramToken] Data found, checking expiration');
     console.log('[TelegramToken] Current time:', Date.now());
-    console.log('[TelegramToken] Expires at:', data.expiresAt);
+    
+    // Type guard to ensure data has the expected structure
+    if (typeof data !== 'object' || data === null || !('expiresAt' in data)) {
+      console.log('[TelegramToken] Invalid data structure');
+      return null;
+    }
+    
+    const tokenData = data as TelegramTokenData;
+    console.log('[TelegramToken] Expires at:', tokenData.expiresAt);
 
     // 检查是否过期
-    if (data.expiresAt < Date.now()) {
+    if (tokenData.expiresAt < Date.now()) {
       console.log('[TelegramToken] Token expired, deleting');
       await deleteTelegramToken(token);
       return null;
@@ -119,7 +135,7 @@ export async function verifyAndConsumeTelegramToken(token: string): Promise<Tele
     await deleteTelegramToken(token);
 
     console.log('[TelegramToken] Returning token data');
-    return data as TelegramTokenData;
+    return tokenData;
   } catch (error) {
     console.error('[TelegramToken] Failed to verify and consume token:', error);
     return null;

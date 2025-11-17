@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await db.addSearchHistory(authInfo.username, keyword);
+    await db.addSearchHistory(authInfo.username, keyword, 'search', 0);
 
     // 再次获取最新列表，确保客户端与服务端同步
     const history = await db.getSearchHistory(authInfo.username);

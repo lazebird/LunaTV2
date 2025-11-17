@@ -111,8 +111,8 @@ export async function GET(request: NextRequest) {
     // 检查缓存
     try {
       const cachedResult = await db.getCache(cacheKey);
-      if (cachedResult) {
-        console.log(`✅ [TMDB API] 缓存命中: ${actorName} - ${cachedResult.list?.length || 0} 项`);
+      if (cachedResult && typeof cachedResult === 'object') {
+        console.log(`✅ [TMDB API] 缓存命中: ${actorName} - ${(cachedResult as any).list?.length || 0} 项`);
         return NextResponse.json(cachedResult);
       }
       console.log(`❌ [TMDB API] 缓存未命中，开始搜索...`);

@@ -42,10 +42,10 @@ export async function GET(request: NextRequest) {
   // 服务端直接调用数据库（不用ClientCache，避免HTTP循环调用）
   try {
     const cached = await db.getCache(cacheKey);
-    if (cached) {
+    if (cached && typeof cached === 'object') {
       console.log(`✅ 网盘搜索缓存命中(数据库): "${query}" (${enabledCloudTypesStr})`);
       return NextResponse.json({
-        ...cached,
+        ...(cached as any),
         fromCache: true,
         cacheSource: 'database',
         cacheTimestamp: new Date().toISOString()

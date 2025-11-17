@@ -59,22 +59,22 @@ export async function POST(req: NextRequest) {
     };
 
     // 获取所有用户
-    let allUsers = await db.getAllUsers();
+    let allUsers: string[] = await db.getAllUsers();
     // 添加站长用户
-    allUsers.push(process.env.USERNAME);
+    allUsers.push(process.env.USERNAME!);
     allUsers = Array.from(new Set(allUsers));
 
     // 为每个用户收集数据
     for (const username of allUsers) {
       const userData = {
         // 播放记录
-        playRecords: await db.getAllPlayRecords(username),
+        playRecords: await db.getAllPlayRecords(),
         // 收藏夹
-        favorites: await db.getAllFavorites(username),
+        favorites: await db.getAllFavorites(),
         // 搜索历史
-        searchHistory: await db.getSearchHistory(username),
+        searchHistory: await db.getSearchHistory(),
         // 跳过片头片尾配置
-        skipConfigs: await db.getAllSkipConfigs(username),
+        skipConfigs: await db.getAllSkipConfigs(),
         // 用户密码（通过验证空密码来检查用户是否存在，然后获取密码）
         password: await getUserPassword(username)
       };

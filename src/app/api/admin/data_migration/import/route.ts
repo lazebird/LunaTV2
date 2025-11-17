@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
       // 导入搜索历史
       if (user.searchHistory && Array.isArray(user.searchHistory)) {
         for (const keyword of user.searchHistory.reverse()) { // 反转以保持顺序
-          await db.addSearchHistory(username, keyword);
+          await db.addSearchHistory(username, keyword, 'search', 0);
         }
       }
 
