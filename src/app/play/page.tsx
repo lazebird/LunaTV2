@@ -11,6 +11,7 @@ import EpisodeSelector from '@/components/EpisodeSelector';
 import NetDiskSearchResults from '@/components/NetDiskSearchResults';
 import PageLayout from '@/components/PageLayout';
 import SkipController, { SkipSettingsButton } from '@/components/SkipController';
+import VideoCard from '@/components/VideoCard';
 import artplayerPluginChromecast from '@/lib/artplayer-plugin-chromecast';
 import { ClientCache } from '@/lib/client-cache';
 import {
@@ -64,6 +65,7 @@ function PlayPageClient() {
   // 豆瓣详情状态
   const [movieDetails, setMovieDetails] = useState<any>(null);
   const [loadingMovieDetails, setLoadingMovieDetails] = useState(false);
+  const [showDebugModal, setShowDebugModal] = useState(false);
 
   // 返回顶部按钮显示状态
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -4670,15 +4672,163 @@ function PlayPageClient() {
               )}
 
               {/* 剧情简介 */}
-              {(shortdramaDetails?.desc || detail?.desc || bangumiDetails?.summary) && (
+              {(shortdramaDetails?.desc || detail?.desc || bangumiDetails?.summary || movieDetails?.plot_summary) && (
                 <div
                   className='mt-0 text-base leading-relaxed opacity-90 overflow-y-auto pr-2 flex-1 min-h-0 scrollbar-hide'
                   style={{ whiteSpace: 'pre-line' }}
                 >
-                  {shortdramaDetails?.desc || bangumiDetails?.summary || detail?.desc}
+                  {movieDetails?.plot_summary || shortdramaDetails?.desc || bangumiDetails?.summary || detail?.desc}
                 </div>
               )}
-              
+
+              {/* 演员阵容 */}
+              {movieDetails?.celebrities && movieDetails.celebrities.length > 0 && (
+                <div className='mt-6 border-t border-gray-200 dark:border-gray-700 pt-6'>
+                  <h3 className='text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2'>
+                    <span>🎭</span>
+                    <span>演员阵容</span>
+                    <button
+                      onClick={() => setShowDebugModal(true)}
+                      className='ml-2 px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600'
+                    >
+                      🐛 调试
+                    </button>
+                  </h3>
+                  {showDebugModal && (
+                    <div className='fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4' onClick={() => setShowDebugModal(false)}>
+                      <div className='bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto p-6' onClick={(e) => e.stopPropagation()}>
+                        <div className='flex justify-between items-center mb-4'>
+                          <h2 className='text-xl font-bold'>🐛 演员头像调试</h2>
+                          <button onClick={() => setShowDebugModal(false)} className='text-2xl'>&times;</button>
+                        </div>
+                        <div className='space-y-4 text-sm'>
+                          <div className='bg-gray-100 dark:bg-gray-700 p-3 rounded'>
+                            <div><strong>环境:</strong> {typeof window !== 'undefined' ? '✅ 浏览器' : '❌ 服务端'}</div>
+                            <div><strong>localStorage:</strong> {typeof localStorage !== 'undefined' ? '✅ 可用' : '❌ 不可用'}</div>
+                            {typeof localStorage !== 'undefined' && (
+                              <div><strong>localStorage值:</strong> {localStorage.getItem('doubanImageProxyType') || 'null'}</div>
+                            )}
+                            <div><strong>RUNTIME_CONFIG:</strong> {typeof window !== 'undefined' && (window as any).RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY_TYPE || 'null'}</div>
+                            <div><strong>演员总数:</strong> {movieDetails.celebrities.length}</div>
+                          </div>
+                          <div className='bg-blue-50 dark:bg-blue-900 p-4 rounded'>
+                            <div className='font-bold mb-3'>⚙️ 切换图片代理模式：</div>
+                            <div className='flex flex-wrap gap-2'>
+                              {['server', 'direct', 'img3'].map(mode => (
+                                <button
+                                  key={mode}
+                                  onClick={() => {
+                                    localStorage.setItem('doubanImageProxyType', mode);
+                                    alert(`已切换到 ${mode} 模式！页面即将刷新...`);
+                                    window.location.reload();
+                                  }}
+                                  className='px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
+                                >
+                                  {mode}
+                                </button>
+                              ))}
+                              <button
+                                onClick={() => {
+                                  localStorage.removeItem('doubanImageProxyType');
+                                  alert('已清除设置！页面即将刷新...');
+                                  window.location.reload();
+                                }}
+                                className='px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600'
+                              >
+                                清除设置
+                              </button>
+                            </div>
+                          </div>
+                          <div className='bg-gray-100 dark:bg-gray-700 p-3 rounded'>
+                            <div className='font-bold mb-2'>前3个演员示例：</div>
+                            {movieDetails.celebrities.slice(0, 3).map((celeb: any, index: number) => {
+                              const processedUrl = processImageUrl(celeb.avatar);
+                              return (
+                                <div key={index} className='mb-3 pb-3 border-b border-gray-300 dark:border-gray-600 last:border-0'>
+                                  <div className='font-bold'>{celeb.name} ({celeb.role || '未知'})</div>
+                                  <div className='text-xs mt-1 break-all text-gray-600 dark:text-gray-400'>
+                                    处理后: {processedUrl.substring(0, 80)}...
+                                  </div>
+                                  <img src={processedUrl} alt={celeb.name} className='w-16 h-16 rounded-full mt-2' />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div className='flex gap-4 overflow-x-auto pb-4 scrollbar-hide'>
+                    {movieDetails.celebrities.slice(0, 15).map((celebrity: any) => (
+                      <a
+                        key={celebrity.id}
+                        href={`https://www.douban.com/personage/${celebrity.id}/`}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className='flex-shrink-0 text-center group cursor-pointer'
+                      >
+                        <div className='w-20 h-20 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 mb-2 ring-2 ring-transparent group-hover:ring-blue-500 transition-all duration-300 group-hover:scale-110 shadow-md group-hover:shadow-xl'>
+                          <img
+                            src={processImageUrl(celebrity.avatar)}
+                            alt={celebrity.name}
+                            className='w-full h-full object-cover'
+                            loading='lazy'
+                            onError={(e) => {
+                              console.error('演员头像加载失败:', celebrity.name, celebrity.avatar, processImageUrl(celebrity.avatar));
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                        <p className='text-xs font-medium text-gray-700 dark:text-gray-300 w-20 truncate group-hover:text-blue-500 transition-colors' title={celebrity.name}>
+                          {celebrity.name}
+                        </p>
+                        {celebrity.role && (
+                          <p className='text-[10px] text-gray-500 dark:text-gray-500 w-20 truncate mt-0.5' title={celebrity.role}>
+                            {celebrity.role}
+                          </p>
+                        )}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 推荐影片 */}
+              {movieDetails?.recommendations && movieDetails.recommendations.length > 0 && (
+                <div className='mt-6 border-t border-gray-200 dark:border-gray-700 pt-6'>
+                  <h3 className='text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2'>
+                    <span>💡</span>
+                    <span>喜欢这部{movieDetails.episodes ? '剧' : '电影'}的人也喜欢</span>
+                  </h3>
+                  <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4'>
+                    {movieDetails.recommendations.map((item: any) => {
+                      const playUrl = `/play?title=${encodeURIComponent(item.title)}&douban_id=${item.id}&prefer=true`;
+                      return (
+                        <a
+                          key={item.id}
+                          href={playUrl}
+                          className='block'
+                          style={{
+                            WebkitTapHighlightColor: 'transparent',
+                            touchAction: 'manipulation'
+                          }}
+                        >
+                          <VideoCard
+                            id={item.id}
+                            title={item.title}
+                            poster={item.poster}
+                            rate={item.rate}
+                            douban_id={parseInt(item.id)}
+                            from='douban'
+                            isAggregate={true}
+                          />
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* 网盘资源区域 */}
               <div id="netdisk-section" className='mt-6'>
                 <div className='border-t border-gray-200 dark:border-gray-700 pt-6'>
